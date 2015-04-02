@@ -9,17 +9,10 @@ import requests
 import base64
 import time
 import datetime
+import inspect
+import ntpath
+from config import *
 from subprocess import call
-
-
-# proxy server and port
-proxy = '133.44.62.220'
-port = '8080'
-
-proxies = {
-    'http': 'http://' + proxy + ':' + port,
-    'https': 'http://' + proxy + ':' + port,
-}
 
 
 class Server():
@@ -64,6 +57,25 @@ def get_data():
         print 'Failed to get VPN servers data\nCheck your network setting and proxy'
 
 
+# proxy server and port
+path = os.path.abspath(inspect.getsourcefile(get_data))
+config_file = ntpath.split(path)[0] + '/config.ini'
+if os.path.exists(config_file):
+    proxy, port, sort_by = read_config(config_file)
+else:
+    proxy, port = raw_input(' Enter your http proxy (eg: www.proxy.com:8080 or 123.11.22.33:8080): ').split(':')
+    sort_by = raw_input('sort result by (speed (default) | ping | score):')
+    if sort_by not in ['speed', 'ping', 'score']:
+        sort_by = 'speed'
+
+    write_config(config_file, proxy, port, sort_by)
+
+proxies = {
+    'http': 'http://' + proxy + ':' + port,
+    'https': 'http://' + proxy + ':' + port,
+}
+
+# fetch data from vpngate.net
 vpn_list = get_data()
 ranked = sorted(vpn_list.keys(), key=lambda x: vpn_list[x].speed, reverse=True)
 
