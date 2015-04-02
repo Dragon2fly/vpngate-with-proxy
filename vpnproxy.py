@@ -3,13 +3,13 @@
 __author__ = 'duc_tin'
 
 import os
+import sys
 import re
 import requests
 import base64
-from subprocess import call, check_output, CalledProcessError, Popen
 import time
 import datetime
-import sys
+from subprocess import call
 
 
 # proxy server and port
@@ -58,12 +58,11 @@ def get_data():
     try:
         vpn_data = requests.get('http://www.vpngate.net/api/iphone/', proxies=proxies).text.replace('\r', '')
         servers = [line.split(',') for line in vpn_data.split('\n')]
-        labels = servers[1]
-        labels[0] = labels[0][1:]
         servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
         return servers
     except:
         print 'Failed to get VPN servers data\nCheck your network setting and proxy'
+
 
 vpn_list = get_data()
 ranked = sorted(vpn_list.keys(), key=lambda x: vpn_list[x].speed, reverse=True)
@@ -84,46 +83,3 @@ while True:
     except KeyboardInterrupt:
         time.sleep(0.5)
         print "Select another VPN server or 'q' to quit"
-
-# path to .ovpn containing folder
-# path = '/home/duc_tin'
-# ovpn = [fi for fi in os.listdir('/home/duc_tin') if fi[-4:] == 'ovpn']
-# count = 0
-
-# # add proxy and dns patch to ovpn file
-# for fi in ovpn:
-#     with open(path + '/' + fi, 'r+') as fvpn:
-#         lines = fvpn.readlines()
-#         if ';http-proxy-retry\r\n' in lines:
-#             index1 = lines.index(';http-proxy-retry\r\n')
-#             lines[index1] = 'http-proxy-retry 5\r\n'
-#             lines[index1 + 1] = 'http-proxy 133.44.62.220 8080\r\n'
-#             fvpn.seek(0)
-#             fvpn.writelines(lines)
-#             count += 1
-#         if dns_leak_stop[0] not in lines:
-#             fvpn.writelines(dns_leak_stop)
-# print 'changed %s file(s)' % count
-
-# sort ovpn file by modified time
-# modtime = lambda x: time.ctime(os.path.getmtime(x))
-# ovpn.sort(key=modtime, reverse=True)
-
-# vpn_dict = dict(zip(range(len(alive)), [server for alv in alive for server in ovpn if alv in server]))
-# vpn_dict = dict(zip(range(len(ovpn[:20])), ovpn[:20]))
-
-
-
-# select ovpn to run
-# while True:
-#     for key in vpn_dict:
-#         print key, ':', vpn_dict[key], 'available' if addr.findall(vpn_dict[key])[0] in alive else ''
-#     try:
-#         user_input = raw_input('Choose vpn No.: ')
-#         if user_input in ['Q', 'q', 'quit', 'exit']:
-#             sys.exit()
-#         choose_vpn = int(user_input)
-#         call(['sudo', 'openvpn', '--config', vpn_dict[choose_vpn]])
-#     except KeyboardInterrupt:
-#         time.sleep(0.5)
-#         print 'Select another VPN server'
