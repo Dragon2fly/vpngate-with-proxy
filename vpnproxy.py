@@ -56,10 +56,10 @@ def get_data():
     except:
         print 'Failed to get VPN servers data\nCheck your network setting and proxy'
 
-
 # proxy server and port
 path = os.path.abspath(inspect.getsourcefile(get_data))
 config_file = ntpath.split(path)[0] + '/config.ini'
+
 if os.path.exists(config_file):
     proxy, port, sort_by = read_config(config_file)
 else:
@@ -69,6 +69,11 @@ else:
         sort_by = 'speed'
 
     write_config(config_file, proxy, port, sort_by)
+
+# process commandline arguments
+args = sys.argv[1:]
+if len(args):
+    get_input(config_file, args)
 
 proxies = {
     'http': 'http://' + proxy + ':' + port,
