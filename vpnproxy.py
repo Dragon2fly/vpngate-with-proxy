@@ -47,12 +47,14 @@ class Server():
 
 def get_data():
     try:
-        vpn_data = requests.get('http://www.vpngate.net/api/iphone/', proxies=proxies).text.replace('\r', '')
+        vpn_data = requests.get('http://www.vpngate.net/api/iphone/', proxies=proxies, timeout=3).text.replace('\r', '')
         servers = [line.split(',') for line in vpn_data.split('\n')]
         servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
         return servers
-    except:
+    except requests.exceptions.ConnectionError:
         print 'Failed to get VPN servers data\nCheck your network setting and proxy'
+    except requests.exceptions.ConnectTimeout:
+        print 'Connection Timeout!\nCheck your network setting and proxy'
 
 # proxy server and port
 path = os.path.realpath(sys.argv[0])
