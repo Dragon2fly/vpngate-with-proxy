@@ -7,25 +7,24 @@ import re
 
 def get_input(config_path, option):
     if option[0] in ['config']:
-        proxy, port, sort_by, use_proxy = read_config(config_path)
-        print '_Current settings:'
-        print '___proxy: %s:%s' % (proxy, port)
-        print '___sort servers by: ', sort_by
-        print 'Connect to VPN through proxy: ', use_proxy
+        proxy, port, sort_by, use_proxy, country = read_config(config_path)
+        print ' Current settings:'
+        print '   1. Proxy address: %s\t2. port: %s' % (proxy, port)
+        print '   3. Sort servers by: ', sort_by
+        print '   4. Connect to VPN through proxy: ', use_proxy
+        print '   5. Country filter: ', country
 
         while 1:
-            print '\nPress Enter to process to vpn list or \n1: to change proxy\'s address\n2: to change proxy\'s ' \
-                  'port\n3: to change sorting parameter\n4: to turn on/off proxy'
-            user_input = raw_input()
+            user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
                 print 'Process to vpn server list'
-                write_config(config_path, proxy, port, sort_by, use_proxy)
+                write_config(config_path, proxy, port, sort_by, use_proxy, country)
                 return
             elif user_input == '1':
                 proxy = raw_input('Http proxy\'s address (eg: www.proxy.com or 123.11.22.33): ')
             elif user_input == '2':
                 user_input = 'abc'
-                while not re.findall(r'^\d+$', user_input.strip()):
+                while not user_input.strip().isdigit():
                     user_input = raw_input('Http proxy\'s port (eg: 8080): ')
                 port = user_input
             elif user_input == '3':
@@ -38,6 +37,12 @@ def get_input(config_path, option):
                     user_input = raw_input('Use proxy to connect to vpn? (yes|no): ')
                 else:
                     use_proxy = 'no' if user_input in 'no' else 'yes'
+
+            elif user_input == '5':
+                while not re.match('^[a-z ]+$', user_input.lower().strip()):
+                    user_input = raw_input('Country\'s name (eg: all(default), jp, japan):')
+                else:
+                    country = user_input
             else:
                 print 'Invalid input'
 
@@ -49,10 +54,11 @@ def read_config(config_path):
     proxy = parser.get('proxy', 'address')
     port = parser.get('proxy', 'port')
     sort_by = parser.get('sort', 'key')
-    return proxy, port, sort_by, use_proxy
+    country = parser.get('country_filter', 'country')
+    return proxy, port, sort_by, use_proxy, country
 
 
-def write_config(config_path, proxy, port, parameter, use_proxy):
+def write_config(config_path, proxy, port, parameter, use_proxy, country):
     parser = ConfigParser.SafeConfigParser()
     parser.add_section('proxy')
     parser.set('proxy', 'use proxy', use_proxy)
@@ -61,6 +67,9 @@ def write_config(config_path, proxy, port, parameter, use_proxy):
 
     parser.add_section('sort')
     parser.set('sort', 'key', parameter)
+
+    parser.add_section('country_filter')
+    parser.set('country_filter', 'country', country)
 
     with open(config_path, 'w+') as configfile:
         parser.write(configfile)
