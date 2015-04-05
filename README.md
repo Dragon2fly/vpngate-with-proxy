@@ -10,8 +10,8 @@ Then it saves your config into config.ini and load it automatically from the sec
 
 #Commands:
 * **config** : to view current settings about proxy, sorting parameter, country filter ...
-* **number** : in *settings screen*, change setting by enter its correspondent number
-              in server's list, choose the server you want to connect by its index
+* **number** : ```in *settings screen*, change each setting by enter its correspondent number
+               in server's list, choose the server you want to connect by its index```
               
 * **q**,**exit**: in server's list, quit the program
 * **r**,**refresh** : in server's list, fetch new server's data from vpngate.net
