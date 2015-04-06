@@ -11,8 +11,8 @@ by using python script. Auto add DNS to fix DNS leak.
 
   Using *git*:
   ```Shell
-     $ sudo apt-get install git
-     $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
+  $ sudo apt-get install git
+  $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
   ```
   
   **OR**
