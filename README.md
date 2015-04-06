@@ -3,16 +3,16 @@ vpngate client for linux, be able to connect to open_vpn server through proxy
 by using python script. Auto add DNS to fix DNS leak.
 
 #Dependency:
-* **openvpn**: '''$ sudo apt-get install openvpn'''
+* **openvpn**: ```$ sudo apt-get install openvpn```
 * **python 2.7.x**
 
 #How to use:
 1. Installation:
   Using *git*:
-  '''
+  ```
      $ sudo apt-get install git
      $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
-  '''
+  ```
   
   **OR**
   
@@ -21,17 +21,16 @@ by using python script. Auto add DNS to fix DNS leak.
 
 
 2. First run:
-  '''
+  ```
   $ cd vpngate-with-proxy
   ~/vpngate-with-proxy$ ./vpnproxy.py
-  '''
+  ```
 
-Then program will first setup a configuration by asking you for your *proxy* and how to *sort* the result descending 
-(by **speed** or **ping** or **up time** or **score**)...
+  Then program will first setup a configuration by asking you for your *proxy* and how to *sort* the result          descending (by **speed** or **ping** or **up time** or **score**)...
 
-With setting that has default option, just Enter to use that default option 
+  With setting that has default option, just Enter to use that default option 
 
-If no thing goes wrong, the vpn server's list will show up
+  If no thing goes wrong, the vpn server's list will show up
  
 3. Next run:
   Setting in config.ini will be loaded automatically from the second time.
