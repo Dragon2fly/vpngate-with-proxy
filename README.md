@@ -10,7 +10,7 @@ by using python script. Auto add DNS to fix DNS leak.
 ###1. Installation:
 
   Using *git*:
-  ```
+  ```Shell
      $ sudo apt-get install git
      $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
   ```
@@ -22,7 +22,7 @@ by using python script. Auto add DNS to fix DNS leak.
 
 
 ###2. First run:
-  ```
+  ```Shell
   $ cd vpngate-with-proxy
   ~/vpngate-with-proxy$ ./vpnproxy.py
   ```
@@ -36,7 +36,7 @@ by using python script. Auto add DNS to fix DNS leak.
 ###3. Next run:
   * Setting in config.ini will be loaded automatically from the second time.
   * To view or change settings before the program fetches server's list:
-  ```
+  ```Shell
   ~/vpngate-with-proxy$ ./vpnproxy.py config
   ```
   
