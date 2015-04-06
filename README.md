@@ -7,7 +7,8 @@ by using python script. Auto add DNS to fix DNS leak.
 * **python 2.7.x**
 
 #How to use:
-1. Installation:
+###1. Installation:
+
   Using *git*:
   ```
      $ sudo apt-get install git
@@ -20,7 +21,7 @@ by using python script. Auto add DNS to fix DNS leak.
   Put 3 files into the folder named eg. "vpngate-with-proxy"
 
 
-2. First run:
+###2. First run:
   ```
   $ cd vpngate-with-proxy
   ~/vpngate-with-proxy$ ./vpnproxy.py
@@ -32,7 +33,7 @@ by using python script. Auto add DNS to fix DNS leak.
 
   If no thing goes wrong, the vpn server's list will show up
  
-3. Next run:
+###3. Next run:
   * Setting in config.ini will be loaded automatically from the second time.
   * To view or change settings before the program fetches server's list:
   ```
