@@ -108,7 +108,7 @@ if os.path.exists(config_file):
     proxy, port, sort_by, use_proxy, country = read_config(config_file)
 
 else:
-    use_proxy = raw_input('Use proxy to connect to vpn? (yes|no): ')
+    use_proxy = use_proxy = 'no' if raw_input('Use proxy to connect to vpn? (yes|no): ') in 'no' else 'yes'
     proxy, port = raw_input(' Enter your http proxy:port\n(eg: www.proxy.com:8080 or 123.11.22.33:8080): ').split(':')
     sort_by = raw_input('sort result by (speed (default) | ping | score | up time):')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
