@@ -33,12 +33,14 @@ by using python script. Auto add DNS to fix DNS leak.
   If no thing goes wrong, the vpn server's list will show up
  
 3. Next run:
-  Setting in config.ini will be loaded automatically from the second time.
-  To view or change settings before the program fetches server's list:
+  * Setting in config.ini will be loaded automatically from the second time.
+  * To view or change settings before the program fetches server's list:
+  ```
   ~/vpngate-with-proxy$ ./vpnproxy.py config
+  ```
   
-  To view or change settings at server's list: type **c** or **config**
-  For more commands, read **Commands**
+  * To view or change settings at server's list: type **c** or **config**
+  * For more commands, read **Commands**
   
 
 #Commands:
