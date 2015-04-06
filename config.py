@@ -8,13 +8,14 @@ import re
 def get_input(config_path, option):
     if option[0] in ['config']:
         proxy, port, sort_by, use_proxy, country = read_config(config_path)
-        print ' Current settings:'
-        print '   1. Proxy address: %s\t2. port: %s' % (proxy, port)
-        print '   3. Sort servers by: ', sort_by
-        print '   4. Connect to VPN through proxy: ', use_proxy
-        print '   5. Country filter: ', country
 
         while 1:
+            print ' Current settings:'
+            print '   1. Proxy address: %s\t2. port: %s' % (proxy, port)
+            print '   3. Sort servers by: ', sort_by
+            print '   4. Use proxy: ', use_proxy
+            print '   5. Country filter: ', country
+
             user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
                 print 'Process to vpn server list'
@@ -29,7 +30,7 @@ def get_input(config_path, option):
                 port = user_input
             elif user_input == '3':
                 while user_input not in ['speed', 'ping', 'score', 'up time', 'uptime']:
-                    user_input = raw_input('sort result by (speed | ping | score | up time): ')
+                    user_input = raw_input('Sort servers by (speed | ping | score | up time): ')
                 sort_by = 'up time' if user_input == 'uptime' else user_input
 
             elif user_input == '4':
@@ -39,10 +40,10 @@ def get_input(config_path, option):
                     use_proxy = 'no' if user_input in 'no' else 'yes'
 
             elif user_input == '5':
-                while not re.match('^[a-z ]+$', user_input.lower().strip()):
+                while not re.match('^[a-z ]*$', user_input.lower().strip()):
                     user_input = raw_input('Country\'s name (eg: all(default), jp, japan):')
                 else:
-                    country = user_input
+                    country = 'all' if not user_input else user_input.lower()
             else:
                 print 'Invalid input'
 

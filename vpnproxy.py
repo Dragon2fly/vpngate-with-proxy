@@ -41,7 +41,7 @@ class Server():
         return tmp_vpn
 
     def __str__(self):
-        speed = self.speed/1000.**2
+        speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
         txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto]
@@ -59,7 +59,6 @@ def get_data():
         proxies = {}
 
     try:
-        print 'Use proxy: ', use_proxy,
         vpn_data = requests.get('http://www.vpngate.net/api/iphone/', proxies=proxies, timeout=3).text.replace('\r', '')
         servers = [line.split(',') for line in vpn_data.split('\n')]
         servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
@@ -75,7 +74,8 @@ def refresh_data():
     vpnlist = get_data()
     if country != 'all':
         vpnlist = dict([vpn for vpn in vpnlist.items()
-                        if country in vpn[1].country_long.lower() + vpn[1].country_short.lower()])
+                        if re.search(r'\b%s\b' % country, vpn[1].country_long.lower() + ' '
+                                     + vpn[1].country_short.lower())])
 
     if sort_by == 'speed':
         sort = sorted(vpnlist.keys(), key=lambda x: vpnlist[x].speed, reverse=True)
@@ -110,7 +110,7 @@ if os.path.exists(config_file):
 else:
     use_proxy = use_proxy = 'no' if raw_input('Use proxy to connect to vpn? (yes|no): ') in 'no' else 'yes'
     proxy, port = raw_input(' Enter your http proxy:port\n(eg: www.proxy.com:8080 or 123.11.22.33:8080): ').split(':')
-    sort_by = raw_input('sort result by (speed (default) | ping | score | up time):')
+    sort_by = raw_input('Sort servers by (speed (default) | ping | score | up time):')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
         sort_by = 'speed'
     country = raw_input('Filter server by country (eg: off(default), jp, japan:')
@@ -126,6 +126,7 @@ spaces = [6, 7, 6, 10, 10, 10, 10, 8]
 labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
 
 while True:
+    print 'Use proxy: ', use_proxy,
     print ' || Country: ', country
     if not ranked:
         print '\nNo server found for "%s"\n' % country
@@ -134,16 +135,17 @@ while True:
         for index, key in enumerate(ranked[:20]):
             print '%2d:'.center(6) % index, vpn_list[key]
     try:
+        server_sum = min(len(ranked), 20)
         user_input = raw_input('Vpn command: ')
         if user_input.strip().lower() in ['q', 'quit', 'exit']:
             sys.exit()
-        elif user_input.strip().lower() in ['r', 'refresh']:
+        elif user_input.strip().lower() in 'refresh':
             ranked, vpn_list = refresh_data()
-        elif user_input.strip().lower() == 'config':
+        elif user_input.strip().lower() in 'config':
             get_input(config_file, [user_input])
             proxy, port, sort_by, use_proxy, country = read_config(config_file)
             ranked, vpn_list = refresh_data()
-        elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < 20:
+        elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
             print ('Connect to ' + vpn_list[ranked[chose]].country_long).center(40)
             print vpn_list[ranked[chose]].ip.center(40)
@@ -152,9 +154,9 @@ while True:
             call(['sudo', 'openvpn', '--config', os.path.abspath(vpn_file.name)])
         else:
             print 'Invalid command!'
-            print ' q(uit) to quit\n r(efresh) to refresh table\n' \
-                  ' config to change setting\n number in range 0~19 to choose vpn'
-            time.sleep(3)
+            print '  q(uit) to quit\n  r(efresh) to refresh table\n' \
+                  '  c(onfig) to change setting\n  number in range 0~%s to choose vpn\n' % (server_sum - 1)
+            time.sleep(2)
     except KeyboardInterrupt:
         time.sleep(0.5)
         print "\nSelect another VPN server or 'q' to quit"
