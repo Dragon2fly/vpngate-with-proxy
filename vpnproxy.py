@@ -132,7 +132,7 @@ except ImportError:
     required['requests'] = 1
 
 # openvpn = Popen(['whereis', 'openvpn'], stdout=PIPE).stdout.read()
-if not os.path.exists('/usr/sbin/resolvconf'):
+if not os.path.exists('/usr/sbin/openvpn'):
     required['openvpn'] = 1
 
 if not os.path.exists('/sbin/resolvconf'):
@@ -149,6 +149,7 @@ if need:
         print '\n___Now installing', package
         print
         call(['sudo', '-E', 'apt-get', 'install', package], env=env)
+
 
 # -------- all dependencies should be available after this line ----------------------
 ranked, vpn_list = refresh_data()
