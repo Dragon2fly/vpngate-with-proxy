@@ -4,7 +4,10 @@ by using python script. Auto add DNS to fix DNS leak.
 
 #Dependency:
 * **openvpn**: '''$ sudo apt-get install openvpn'''
-* **python 2.7.x**
+* **resolvconf**: '''$ sudo apt-get install resolvconf'''
+* **python 2.7.x**: should be already shipped with your linux
+
+Except *python 2.7.x*, other dependencies can be automatically installed at first run
 
 #How to use:
 1. Installation:

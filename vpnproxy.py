@@ -4,17 +4,19 @@ __author__ = 'duc_tin'
 
 import os
 import sys
-import re
-import requests
 import base64
 import time
 import datetime
 from config import *
-from subprocess import call
+from subprocess import call, Popen, PIPE
 
 
 class Server():
-    dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
+    if os.path.exists('/sbin/resolvconf'):
+        dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
+    else:
+        print ''
+        dns_leak_stop = ''
 
     def __init__(self, data):
         self.ip = data[1]
@@ -93,7 +95,6 @@ def refresh_data():
     return sort, vpnlist
 
 # ---------------------------- Main  --------------------------------
-
 # get config file path
 path = os.path.realpath(sys.argv[0])
 config_file = os.path.split(path)[0] + '/config.ini'
@@ -108,8 +109,11 @@ if os.path.exists(config_file):
     proxy, port, sort_by, use_proxy, country = read_config(config_file)
 
 else:
-    use_proxy = use_proxy = 'no' if raw_input('Use proxy to connect to vpn? (yes|no): ') in 'no' else 'yes'
-    proxy, port = raw_input(' Enter your http proxy:port\n(eg: www.proxy.com:8080 or 123.11.22.33:8080): ').split(':')
+    use_proxy = 'no' if raw_input('Do you need proxy to connect .? (yes|no): ') in 'no' else 'yes'
+    if use_proxy == 'yes':
+        proxy, port = raw_input(' Your http proxy:port\n( eg: www.proxy.com:8080 or 123.11.22.33:8080): ').split(':')
+    else:
+        proxy, port = '', ''
     sort_by = raw_input('Sort servers by (speed (default) | ping | score | up time):')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
         sort_by = 'speed'
@@ -119,6 +123,34 @@ else:
 
     write_config(config_file, proxy, port, sort_by, use_proxy, country)
 
+# ------------------- check_dependencies: ----------------------
+required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
+
+try:
+    import requests
+except ImportError:
+    required['requests'] = 1
+
+# openvpn = Popen(['whereis', 'openvpn'], stdout=PIPE).stdout.read()
+if not os.path.exists('/usr/sbin/resolvconf'):
+    required['openvpn'] = 1
+
+if not os.path.exists('/sbin/resolvconf'):
+    required['resolvconf'] = 1
+
+need = [p for p in required if required[p]]
+if need:
+    print '\n**Lack of dependencies**'
+    env = dict(os.environ)
+    env['http_proxy'] = 'http://' + proxy + ':' + port
+    env['https_proxy'] = 'http://' + proxy + ':' + port
+
+    for package in need:
+        print '\n___Now installing', package
+        print
+        call(['sudo', '-E', 'apt-get', 'install', package], env=env)
+
+# -------- all dependencies should be available after this line ----------------------
 ranked, vpn_list = refresh_data()
 
 labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol']
