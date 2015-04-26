@@ -24,6 +24,13 @@ Except *python 2.7.x*, all other dependencies can be automatically installed at 
   Download: vpnproxy.py, config.py, update-resolv-conf.sh
   Put 3 files into the folder named eg. "vpngate-with-proxy"
 
+  **If your network is behind a proxy**
+  ```Shell
+    $ export http_proxy="http://your_proxy:your_port"
+    $ export https_proxy="http://your_proxy:your_port"
+    $ sudo -E apt-get install git
+    $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
+  ```
 
 ###2. First run:
   ```Shell
