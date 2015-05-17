@@ -13,7 +13,9 @@ from subprocess import call, Popen, PIPE
 
 class Server():
     if os.path.exists('/sbin/resolvconf'):
-        dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
+        # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
+        dns_leak_stop = 'script-security 2\r\nup updatedns.sh\r\ndown updatedns.sh\r\n'
+
     else:
         print ''
         dns_leak_stop = ''
@@ -37,9 +39,12 @@ class Server():
             txt_data = txt_data.replace('\r\n;http-proxy-retry\r\n', '\r\nhttp-proxy-retry 3\r\n')
             txt_data = txt_data.replace('\r\n;http-proxy [proxy server] [proxy port]\r\n',
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
-        dns_fixed = txt_data + Server.dns_leak_stop
+
+        if dns_fix == 'yes':
+            txt_data += Server.dns_leak_stop
+
         tmp_vpn = open('vpn_tmp', 'w+')
-        tmp_vpn.write(dns_fixed)
+        tmp_vpn.write(txt_data)
         return tmp_vpn
 
     def __str__(self):
@@ -106,22 +111,25 @@ if os.path.exists(config_file):
         # process commandline arguments
         get_input(config_file, args)
 
-    proxy, port, sort_by, use_proxy, country = read_config(config_file)
+    proxy, port, sort_by, use_proxy, country, dns_fix = read_config(config_file)
 
 else:
     use_proxy = 'no' if raw_input('Do you need proxy to connect .? (yes|no): ') in 'no' else 'yes'
     if use_proxy == 'yes':
-        proxy, port = raw_input(' Your http proxy:port\n( eg: www.proxy.com:8080 or 123.11.22.33:8080): ').split(':')
+        proxy, port = raw_input(' Your http_proxy:port: ').split(':')
     else:
         proxy, port = '', ''
-    sort_by = raw_input('Sort servers by (speed (default) | ping | score | up time):')
+    sort_by = raw_input('Sort servers by [speed (default) | ping | score | up time]:')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
         sort_by = 'speed'
-    country = raw_input('Filter server by country (eg: off(default), jp, japan:')
+    country = raw_input('Filter server by country [eg: off(default), jp, japan]:')
     if not country:
         country = 'all'
 
-    write_config(config_file, proxy, port, sort_by, use_proxy, country)
+    dns_fix = raw_input(' Fix DNS leaking [yes (default) | no] : ')
+    dns_fix = dns_fix if dns_fix in 'no' else 'yes'
+
+    write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix)
 
 # ------------------- check_dependencies: ----------------------
 required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
@@ -176,7 +184,7 @@ while True:
             ranked, vpn_list = refresh_data()
         elif user_input.strip().lower() in 'config':
             get_input(config_file, [user_input])
-            proxy, port, sort_by, use_proxy, country = read_config(config_file)
+            proxy, port, sort_by, use_proxy, country, dns_fix = read_config(config_file)
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)

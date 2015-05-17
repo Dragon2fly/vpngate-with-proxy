@@ -6,8 +6,8 @@ import re
 
 
 def get_input(config_path, option):
-    if option[0] in ['config']:
-        proxy, port, sort_by, use_proxy, country = read_config(config_path)
+    if option[0] in 'config':
+        proxy, port, sort_by, use_proxy, country, fix_dns = read_config(config_path)
 
         while 1:
             print ' Current settings:'
@@ -15,14 +15,15 @@ def get_input(config_path, option):
             print '   3. Sort servers by: ', sort_by
             print '   4. Use proxy: ', use_proxy
             print '   5. Country filter: ', country
+            print '   6. Fix dns leaking: ', fix_dns
 
             user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
                 print 'Process to vpn server list'
-                write_config(config_path, proxy, port, sort_by, use_proxy, country)
+                write_config(config_path, proxy, port, sort_by, use_proxy, country, fix_dns)
                 return
             elif user_input == '1':
-                proxy = raw_input('Http proxy\'s address (eg: www.proxy.com or 123.11.22.33): ')
+                proxy = raw_input('Your http_proxy:')
             elif user_input == '2':
                 user_input = 'abc'
                 while not user_input.strip().isdigit():
@@ -44,6 +45,12 @@ def get_input(config_path, option):
                     user_input = raw_input('Country\'s name (eg: all(default), jp, japan):')
                 else:
                     country = 'all' if not user_input else user_input.lower()
+
+            elif user_input == '6':
+                while user_input.lower() not in ['y', 'n', 'yes', 'no']:
+                    user_input = raw_input('Fix DNS:')
+                else:
+                    fix_dns = 'no' if user_input in 'no' else 'yes'
             else:
                 print 'Invalid input'
 
@@ -56,10 +63,11 @@ def read_config(config_path):
     port = parser.get('proxy', 'port')
     sort_by = parser.get('sort', 'key')
     country = parser.get('country_filter', 'country')
-    return proxy, port, sort_by, use_proxy, country
+    fix_dns = parser.get('DNS_leak', 'fix_dns')
+    return proxy, port, sort_by, use_proxy, country, fix_dns
 
 
-def write_config(config_path, proxy, port, parameter, use_proxy, country):
+def write_config(config_path, proxy, port, parameter, use_proxy, country, fix_dns):
     parser = ConfigParser.SafeConfigParser()
     parser.add_section('proxy')
     parser.set('proxy', 'use proxy', use_proxy)
@@ -71,6 +79,9 @@ def write_config(config_path, proxy, port, parameter, use_proxy, country):
 
     parser.add_section('country_filter')
     parser.set('country_filter', 'country', country)
+
+    parser.add_section('DNS_leak')
+    parser.set('DNS_leak', 'fix_dns', fix_dns)
 
     with open(config_path, 'w+') as configfile:
         parser.write(configfile)
