@@ -11,6 +11,10 @@ from config import *
 from subprocess import call, Popen, PIPE
 
 
+mirrors = ['http://103.253.112.16:49882','http://147.46.220.21:26056'.'http://121.186.216.97:38438',
+           'http://158.ip-37-187-34.eu:58272','http://hannan.postech.ac.kr:6395','http://www.vpngate.net']
+
+
 class Server():
     if os.path.exists('/sbin/resolvconf'):
         # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
@@ -66,7 +70,10 @@ def get_data():
         proxies = {}
 
     try:
-        vpn_data = requests.get('http://www.vpngate.net/api/iphone/', proxies=proxies, timeout=3).text.replace('\r', '')
+        i = random.randrange(0,5)
+        print 'using gate: %s' % mirrors[i]
+        gate = mirrors[i]+'/api/iphone/'
+        vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
         servers = [line.split(',') for line in vpn_data.split('\n')]
         servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
         return servers
