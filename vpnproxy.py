@@ -11,8 +11,8 @@ from config import *
 from subprocess import call, Popen, PIPE
 
 
-mirrors = ['http://103.253.112.16:49882','http://147.46.220.21:26056'.'http://121.186.216.97:38438',
-           'http://158.ip-37-187-34.eu:58272','http://hannan.postech.ac.kr:6395','http://www.vpngate.net']
+mirrors = ['http://103.253.112.16:49882','http://147.46.220.21:26056','http://121.186.216.97:38438',
+           'http://158.ip-37-187-34.eu:58272', 'http://hannan.postech.ac.kr:6395', 'http://www.vpngate.net']
 
 
 class Server():
