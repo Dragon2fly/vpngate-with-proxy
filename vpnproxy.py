@@ -145,7 +145,7 @@ required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
 try:
     import requests
 except ImportError:
-    required['requests'] = 1
+    required['python-requests'] = 1
 
 # openvpn = Popen(['whereis', 'openvpn'], stdout=PIPE).stdout.read()
 if not os.path.exists('/usr/sbin/openvpn'):
@@ -161,11 +161,12 @@ if need:
     env['http_proxy'] = 'http://' + proxy + ':' + port
     env['https_proxy'] = 'http://' + proxy + ':' + port
 
-    package = ' '.join(need)
-    print '\n___Now installing required packed'
-    print
-    call(['sudo', '-E', 'apt-get', 'install', package], env=env)
+    for package in need:
+        print '\n___Now installing', package
+        print
+        call(['sudo', '-E', 'apt-get', 'install', package], env=env)
 
+import requests
 
 # -------- all dependencies should be available after this line ----------------------
 ranked, vpn_list = refresh_data()
