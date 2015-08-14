@@ -166,7 +166,7 @@ if need:
         print
         call(['sudo', '-E', 'apt-get', 'install', package], env=env)
 
-import requests
+    import requests
 
 # -------- all dependencies should be available after this line ----------------------
 ranked, vpn_list = refresh_data()
