@@ -134,8 +134,7 @@ else:
     if not country:
         country = 'all'
 
-    dns_fix = raw_input(' Fix DNS leaking [yes (default) | no] : ')
-    dns_fix = dns_fix if dns_fix in 'no' else 'yes'
+    dns_fix = 'yes' if raw_input(' Fix DNS leaking [yes (default) | no] : ') in 'yes' else 'no'
 
     write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix)
 
