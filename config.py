@@ -3,6 +3,29 @@ __author__ = 'duc_tin'
 
 import ConfigParser
 import re
+import sys
+
+
+def ctext(text, color):
+    """ Add color to printed text
+    :type text: str
+    :type color: str
+    """
+    fcolor = {'p': '\033[95m',  # purple
+              'b': '\033[94m',  # blue
+              'g': '\033[92m',  # green
+              'y': '\033[93m',  # yellow
+              'r': '\033[91m',  # red
+
+              'B': '\033[1m',  # BOLD
+              'U': '\033[4m',  # UNDERLINE
+              }
+
+    ENDC = '\033[0m'
+
+    tformat = ''.join([fcolor[fm] for fm in color])
+
+    return tformat + text + ENDC
 
 
 def get_input(config_path, option):
@@ -10,12 +33,12 @@ def get_input(config_path, option):
         proxy, port, sort_by, use_proxy, country, fix_dns = read_config(config_path)
 
         while 1:
-            print ' Current settings:'
-            print '   1. Proxy address: %s\t2. port: %s' % (proxy, port)
-            print '   3. Sort servers by: ', sort_by
-            print '   4. Use proxy: ', use_proxy
-            print '   5. Country filter: ', country
-            print '   6. Fix dns leaking: ', fix_dns
+            print ctext(' Current settings:', 'B')
+            print ctext('   1. Proxy address:', 'yB'), proxy, ctext('\t2. port: ', 'yB'), port
+            print ctext('   3. Sort servers by:', 'gB'), sort_by
+            print ctext('   4. Use proxy:', 'rB'), use_proxy
+            print ctext('   5. Country filter:', 'pB'), country
+            print ctext('   6. Fix dns leaking:', 'bB'), fix_dns
 
             user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
@@ -51,6 +74,9 @@ def get_input(config_path, option):
                     user_input = raw_input('Fix DNS:')
                 else:
                     fix_dns = 'no' if user_input in 'no' else 'yes'
+            elif user_input in ['q', 'quit', 'exit']:
+                print ctext('Goodbye'.center(40), 'gB')
+                sys.exit(0)
             else:
                 print 'Invalid input'
 

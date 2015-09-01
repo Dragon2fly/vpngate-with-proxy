@@ -18,18 +18,6 @@ mirrors = ['http://www.vpngate.net',
            'http://hannan.postech.ac.kr:6395']
 
 
-class bcolors:
-    """ Add color to printed text """
-    purple = '\033[95m'
-    blue = '\033[94m'
-    green = '\033[92m'
-    yellow = '\033[93m'
-    red = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
 class Server():
     if os.path.exists('/sbin/resolvconf'):
         # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
@@ -87,7 +75,7 @@ def get_data():
     i = 0
     while i < len(mirrors):
         try:
-            print 'using gate: %s' % mirrors[i]
+            print ctext('using gate: ', 'B'),  mirrors[i]
             gate = mirrors[i] + '/api/iphone/'
             vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
 
@@ -99,7 +87,7 @@ def get_data():
             return servers
         except requests.exceptions.RequestException as e:
             print e
-            print bcolors.red + 'Connection to gate ' + mirrors[i] + bcolors.BOLD + ' failed\n' + bcolors.ENDC
+            print 'Connection to gate ' + ctext(mirrors[i], 'B') + ctext(' failed\n', 'rB')
             i += 1
     else:
         print 'Failed to get VPN servers data\nCheck your network setting and proxy'
@@ -146,14 +134,14 @@ if os.path.exists(config_file):
 else:
     use_proxy = 'no' if raw_input('Do you need proxy to connect .? (yes|no): ') in 'no' else 'yes'
     if use_proxy == 'yes':
-        print ' Input your http proxy such as\033[95m www.abc.com:8080 \033[0m'
+        print ' Input your http proxy such as' + ctext('www.abc.com:8080','pB')
         proxy, port = raw_input(' Your\033[95m proxy:port \033[0m:').split(':')
     else:
         proxy, port = '', ''
     sort_by = raw_input('Sort servers by [speed (default) | ping | score | up time]:')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
         sort_by = 'speed'
-    country = raw_input('Filter server by country [eg: off(default), jp, japan]:')
+    country = raw_input('Filter server by country [eg: all(default), jp, japan]:')
     if not country:
         country = 'all'
 
@@ -178,13 +166,13 @@ if not os.path.exists('/sbin/resolvconf'):
 
 need = [p for p in required if required[p]]
 if need:
-    print bcolors.yellow + bcolors.BOLD + '\n**Lack of dependencies**' + bcolors.ENDC
+    print ctext('\n**Lack of dependencies**','rB')
     env = dict(os.environ)
     env['http_proxy'] = 'http://' + proxy + ':' + port
     env['https_proxy'] = 'http://' + proxy + ':' + port
 
     for package in need:
-        print '\n___Now installing', bcolors.green + package + bcolors.ENDC
+        print '\n___Now installing', ctext(package, 'gB')
         print
         call(['sudo', '-E', 'apt-get', 'install', package], env=env)
 
@@ -196,19 +184,27 @@ ranked, vpn_list = refresh_data()
 labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol']
 spaces = [6, 7, 6, 10, 10, 10, 10, 8]
 labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
+connected_servers = []
 
 while True:
-    print 'Use proxy: ', use_proxy,
-    print ' || Country: ', country
+    print ctext('Use proxy: ', 'B'), use_proxy,
+    print ' || ', ctext('Country: ', 'B'), country
+
     if not ranked:
         print '\nNo server found for "%s"\n' % country
     else:
-        print ''.join(labels)
+        print ctext(''.join(labels), 'gB')
         for index, key in enumerate(ranked[:20]):
-            print '%2d:'.center(6) % index, vpn_list[key]
+            text = '%2d:'.center(6) % index + str(vpn_list[key])
+            if connected_servers and vpn_list[key].ip == connected_servers[-1]:
+                text = ctext(text, 'y')
+            elif connected_servers and vpn_list[key].ip in connected_servers:
+                text = ctext(text, 'r')
+            print text
+
     try:
         server_sum = min(len(ranked), 20)
-        user_input = raw_input('Vpn command: ')
+        user_input = raw_input(ctext('Vpn command: ', 'gB'))
         if user_input.strip().lower() in ['q', 'quit', 'exit']:
             sys.exit()
         elif user_input.strip().lower() in 'refresh':
@@ -221,6 +217,7 @@ while True:
             chose = int(user_input)
             print ('Connect to ' + vpn_list[ranked[chose]].country_long).center(40)
             print vpn_list[ranked[chose]].ip.center(40)
+            connected_servers.append(vpn_list[ranked[chose]].ip)
             vpn_file = vpn_list[ranked[chose]].write_file()
             vpn_file.close()
             call(['sudo', 'openvpn', '--config', os.path.abspath(vpn_file.name)])
@@ -229,6 +226,7 @@ while True:
             print '  q(uit) to quit\n  r(efresh) to refresh table\n' \
                   '  c(onfig) to change setting\n  number in range 0~%s to choose vpn\n' % (server_sum - 1)
             time.sleep(2)
+
     except KeyboardInterrupt:
         time.sleep(0.5)
         print "\nSelect another VPN server or 'q' to quit"
