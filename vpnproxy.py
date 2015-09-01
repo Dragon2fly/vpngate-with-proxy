@@ -11,9 +11,23 @@ import random
 from config import *
 from subprocess import call, Popen, PIPE
 
+mirrors = ['http://www.vpngate.net',
+           'http://103.253.112.16:49882',
+           'http://158.ip-37-187-34.eu:58272',
+           'http://121.186.216.97:38438',
+           'http://hannan.postech.ac.kr:6395']
 
-mirrors = ['http://103.253.112.16:49882','http://121.186.216.97:38438',
-           'http://158.ip-37-187-34.eu:58272', 'http://hannan.postech.ac.kr:6395', 'http://www.vpngate.net']
+
+class bcolors:
+    """ Add color to printed text """
+    purple = '\033[95m'
+    blue = '\033[94m'
+    green = '\033[92m'
+    yellow = '\033[93m'
+    red = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 
 class Server():
@@ -70,16 +84,24 @@ def get_data():
     else:
         proxies = {}
 
-    try:
-        i = random.randrange(0,5)
-        print 'using gate: %s' % mirrors[i]
-        gate = mirrors[i]+'/api/iphone/'
-        vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
-        servers = [line.split(',') for line in vpn_data.split('\n')]
-        servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
-        return servers
-    except requests.exceptions.RequestException as e:
-        print e
+    i = 0
+    while i < len(mirrors):
+        try:
+            print 'using gate: %s' % mirrors[i]
+            gate = mirrors[i] + '/api/iphone/'
+            vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
+
+            if 'vpn_servers' not in vpn_data:
+                raise requests.exceptions.RequestException
+
+            servers = [line.split(',') for line in vpn_data.split('\n')]
+            servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
+            return servers
+        except requests.exceptions.RequestException as e:
+            print e
+            print bcolors.red + 'Connection to gate ' + mirrors[i] + bcolors.BOLD + ' failed\n' + bcolors.ENDC
+            i += 1
+    else:
         print 'Failed to get VPN servers data\nCheck your network setting and proxy'
         sys.exit(1)
 
@@ -124,7 +146,8 @@ if os.path.exists(config_file):
 else:
     use_proxy = 'no' if raw_input('Do you need proxy to connect .? (yes|no): ') in 'no' else 'yes'
     if use_proxy == 'yes':
-        proxy, port = raw_input(' Your http_proxy:port: ').split(':')
+        print ' Input your http proxy such as\033[95m www.abc.com:8080 \033[0m'
+        proxy, port = raw_input(' Your\033[95m proxy:port \033[0m:').split(':')
     else:
         proxy, port = '', ''
     sort_by = raw_input('Sort servers by [speed (default) | ping | score | up time]:')
@@ -155,13 +178,13 @@ if not os.path.exists('/sbin/resolvconf'):
 
 need = [p for p in required if required[p]]
 if need:
-    print '\n**Lack of dependencies**'
+    print bcolors.yellow + bcolors.BOLD + '\n**Lack of dependencies**' + bcolors.ENDC
     env = dict(os.environ)
     env['http_proxy'] = 'http://' + proxy + ':' + port
     env['https_proxy'] = 'http://' + proxy + ':' + port
 
     for package in need:
-        print '\n___Now installing', package
+        print '\n___Now installing', bcolors.green + package + bcolors.ENDC
         print
         call(['sudo', '-E', 'apt-get', 'install', package], env=env)
 

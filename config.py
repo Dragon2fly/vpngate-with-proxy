@@ -6,7 +6,7 @@ import re
 
 
 def get_input(config_path, option):
-    if option[0] in 'config':
+    if option[0] in ['c', 'config']:
         proxy, port, sort_by, use_proxy, country, fix_dns = read_config(config_path)
 
         while 1:
@@ -53,6 +53,9 @@ def get_input(config_path, option):
                     fix_dns = 'no' if user_input in 'no' else 'yes'
             else:
                 print 'Invalid input'
+
+    else:
+        print 'Wrong argument. Do you mean "config"?'
 
 
 def read_config(config_path):
