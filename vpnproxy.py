@@ -18,7 +18,7 @@ mirrors = ['http://www.vpngate.net',
            'http://hannan.postech.ac.kr:6395',
            'http://115.160.46.181:38061',
            'http://hornet.knu.ac.kr:36171',
-           'http://182-166-242-138f1.osk3.eonet.ne.jp:64298']
+           'http://182-166-242-138f1.osk3.eonet.ne.jp:64298',]
 
 
 class Server():
