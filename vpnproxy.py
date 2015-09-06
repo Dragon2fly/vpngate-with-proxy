@@ -7,7 +7,6 @@ import sys
 import base64
 import time
 import datetime
-import random
 from config import *
 from subprocess import call, Popen, PIPE
 
@@ -24,10 +23,11 @@ mirrors = ['http://www.vpngate.net',
 # add option to change DNS differ from google
 # re-check DNS resolv after disconnect from VPN
 
+
 class Server():
     if os.path.exists('/sbin/resolvconf'):
         # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
-        dns_leak_stop = 'script-security 2\r\nup updatedns.sh\r\ndown updatedns.sh\r\n'
+        dns_leak_stop = 'script-security 2\r\nup updatedns.sh\r\n'
 
     else:
         print ''
@@ -81,7 +81,7 @@ def get_data():
     i = 0
     while i < len(mirrors):
         try:
-            print ctext('using gate: ', 'B'),  mirrors[i]
+            print ctext('using gate: ', 'B'), mirrors[i]
             gate = mirrors[i] + '/api/iphone/'
             vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
 
@@ -123,6 +123,24 @@ def refresh_data():
 
     return sort, vpnlist
 
+
+def check_dns(action='backup'):
+    dns_orig = '/etc/resolv.conf'
+
+    if not os.path.exists(dns_orig):
+        print ctext('Backup DNS setting', 'yB')
+        bakup = ['-a', '/etc/resolv.conf', '/etc/resolv.conf.bak']
+        call(['sudo', 'cp'] + bakup)
+
+    if action == "change":
+        change = ['echo', 'nameserver 8.8.8.8', '>', '/etc/resolv.conf']
+        call(['sudo'] + change)
+
+    elif action == "restore":
+        print ctext('Restore dns', 'yB')
+        reverseDNS = ['-a', '/etc/resolv.conf.bak', '/etc/resolv.conf']
+        call(['sudo', 'cp'] + reverseDNS)
+
 # ---------------------------- Main  --------------------------------
 # get config file path
 path = os.path.realpath(sys.argv[0])
@@ -140,7 +158,7 @@ if os.path.exists(config_file):
 else:
     use_proxy = 'no' if raw_input('Do you need proxy to connect .? (yes|no): ') in 'no' else 'yes'
     if use_proxy == 'yes':
-        print ' Input your http proxy such as' + ctext('www.abc.com:8080','pB')
+        print ' Input your http proxy such as' + ctext('www.abc.com:8080', 'pB')
         proxy, port = raw_input(' Your\033[95m proxy:port \033[0m:').split(':')
     else:
         proxy, port = '', ''
@@ -154,6 +172,7 @@ else:
     dns_fix = 'yes' if raw_input(' Fix DNS leaking [yes (default) | no] : ') in 'yes' else 'no'
 
     write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix)
+
 
 # ------------------- check_dependencies: ----------------------
 required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
@@ -172,7 +191,7 @@ if not os.path.exists('/sbin/resolvconf'):
 
 need = [p for p in required if required[p]]
 if need:
-    print ctext('\n**Lack of dependencies**','rB')
+    print ctext('\n**Lack of dependencies**', 'rB')
     env = dict(os.environ)
     env['http_proxy'] = 'http://' + proxy + ':' + port
     env['https_proxy'] = 'http://' + proxy + ':' + port
@@ -184,7 +203,9 @@ if need:
 
     import requests
 
+
 # -------- all dependencies should be available after this line ----------------------
+check_dns()
 ranked, vpn_list = refresh_data()
 
 labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol']
@@ -235,4 +256,5 @@ while True:
 
     except KeyboardInterrupt:
         time.sleep(0.5)
+        check_dns('restore')
         print "\nSelect another VPN server or 'q' to quit"
