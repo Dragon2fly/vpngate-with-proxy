@@ -4,6 +4,7 @@ __author__ = 'duc_tin'
 import ConfigParser
 import re
 import sys
+import socket
 
 
 def ctext(text, color):
@@ -30,25 +31,26 @@ def ctext(text, color):
 
 def get_input(config_path, option):
     if option[0] in ['c', 'config']:
-        proxy, port, sort_by, use_proxy, country, fix_dns, dns, verbose = read_config(config_path)
+        proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose = read_config(config_path)
 
         while 1:
             print ctext('\n Current settings:', 'B')
             print ctext('   1. Proxy address:', 'yB'), proxy, ctext('\t2. port: ', 'yB'), port
-            print ctext('   3. Use proxy:', 'gB'), use_proxy
-            print ctext('   4. Sort servers by:', 'rB'), sort_by
-            print ctext('   5. Country filter:', 'pB'), country
-            print ctext('   6. Fix dns leaking:', 'bB'), fix_dns
-            print ctext('   7. DNS list:', 'bB'), dns
+            print ctext('   3. Use proxy:', 'yB'), use_proxy
+            print ctext('   4. Sort servers by:', 'yB'), sort_by
+            print ctext('   5. Country filter:', 'yB'), country
+            print ctext('   6. Fix dns leaking:', 'yB'), fix_dns
+            print ctext('   7. DNS list: ', 'yB'), dns
             print ctext('   8. Show openvpn log:', 'B'), verbose
 
             user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
                 print 'Process to vpn server list'
-                write_config(config_path, proxy, port, sort_by, use_proxy, country, fix_dns, dns, verbose)
+                write_config(config_path, proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose)
                 return
             elif user_input == '1':
                 proxy = raw_input('Your http_proxy:')
+                ip = socket.gethostbyname(proxy)
             elif user_input == '2':
                 user_input = 'abc'
                 while not user_input.strip().isdigit():
@@ -101,7 +103,7 @@ def get_input(config_path, option):
                 print 'Invalid input'
 
     else:
-        print 'Wrong argument. Do you mean "config"?'
+        print 'Wrong argument. Do you mean "config" or "restore" ?'
 
 
 def read_config(config_path):
@@ -110,20 +112,22 @@ def read_config(config_path):
     use_proxy = parser.get('proxy', 'use proxy')
     proxy = parser.get('proxy', 'address')
     port = parser.get('proxy', 'port')
+    ip = parser.get('proxy', 'ip')
     sort_by = parser.get('sort', 'key')
     country = parser.get('country_filter', 'country')
     fix_dns = parser.get('DNS_leak', 'fix_dns')
     dns = parser.get('DNS_leak', 'dns')
     verbose = parser.get('openvpn', 'verbose')
-    return proxy, port, sort_by, use_proxy, country, fix_dns, dns, verbose
+    return proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose
 
 
-def write_config(config_path, proxy, port, parameter, use_proxy, country, fix_dns, dns, verbose='no'):
+def write_config(config_path, proxy, port, ip, parameter, use_proxy, country, fix_dns, dns, verbose='no'):
     parser = ConfigParser.SafeConfigParser()
     parser.add_section('proxy')
     parser.set('proxy', 'use proxy', use_proxy)
     parser.set('proxy', 'address', proxy)
     parser.set('proxy', 'port', port)
+    parser.set('proxy', 'ip', ip)
 
     parser.add_section('sort')
     parser.set('sort', 'key', parameter)

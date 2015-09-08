@@ -76,22 +76,28 @@ class Server():
 
 
 def get_data():
+    global proxy
     if use_proxy == 'yes':
+        ping_name = ['ping', '-w 2', '-c 2', proxy]
+        ping_ip = ['ping', '-w 2', '-c 2', ip]
+        res1, err1 = Popen(ping_name, stdout=PIPE, stderr=PIPE).communicate()
+        res2, err2 = Popen(ping_ip, stdout=PIPE, stderr=PIPE).communicate()
+
+        if err1 and not err2:
+            print ctext('Warning: ', 'yB'),
+            print "Cannot resolve proxy's hostname"
+            proxy = ip
+        if err1 and err2:
+            print ' Ping proxy got error: ', ctext(err1, 'r')
+            print ' Check your proxy setting'
+        if not err1 and '100% packet loss' in res1:
+            print ctext('Warning:', 'yB') + ctext('Proxy not response to ping', 'y')
+            print ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead", 'y')
+
         proxies = {
             'http': 'http://' + proxy + ':' + port,
             'https': 'http://' + proxy + ':' + port,
         }
-
-        ping = ['ping', '-w 3', '-c 2', proxy]
-        res, err = Popen(ping, stdout=PIPE, stderr=PIPE).communicate()
-
-        if err != '':
-            print 'Ping proxy got error: ', ctext(err, 'r')
-            print 'Check your proxy setting'
-            sys.exit()
-        if not err and '100% packet loss' in res:
-            print ctext('Warning:', 'yB') + ctext('Proxy not response to ping', 'y')
-            print ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead", 'y')
 
     else:
         proxies = {}
@@ -142,15 +148,8 @@ def refresh_data():
     return sort, vpnlist
 
 
-def dns_manager(action='backup', DNS=None):
+def dns_manager(action='backup', DNS='8.8.8.8'):
     global dns_fix
-
-    if dns_fix == 'no':
-        return
-    if not DNS:
-        DNS = ['8.8.8.8']
-    else:
-        DNS = DNS.replace(' ', '').split(',')
 
     dns_orig = '/etc/resolv.conf.bak'
 
@@ -159,7 +158,9 @@ def dns_manager(action='backup', DNS=None):
         backup = ['-a', '/etc/resolv.conf', '/etc/resolv.conf.bak']
         call(['cp'] + backup)
 
-    if action == "change":
+    if action == "change" and dns_fix == 'yes':
+        DNS = DNS.replace(' ', '').split(',')
+
         with open('/etc/resolv.conf', 'w+') as resolv:
             for dns in DNS:
                 resolv.write('nameserver ' + dns + '\n')
@@ -211,9 +212,12 @@ args = sys.argv[1:]
 if os.path.exists(config_file):
     if len(args):
         # process commandline arguments
-        get_input(config_file, args)
+        if args[0] in ['r', 'restore']:
+            dns_manager('restore')
+        else:
+            get_input(config_file, args)
 
-    proxy, port, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
+    proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
 
 else:
     print '\n' + '_'*12 + ctext(' First time config ', 'gB') + '_'*12 + '\n'
@@ -224,6 +228,7 @@ else:
         while 1:
             try:
                 proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
+                ip = socket.gethostbyname(proxy)
                 port = port.strip()
                 if not 0 <= int(port) <= 65535:
                     raise ValueError
@@ -252,7 +257,7 @@ else:
     if not dns:
         dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
     verbose = 'no'
-    write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix, dns, verbose)
+    write_config(config_file, proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose)
     print '\n' + '_'*12 + ctext(' Config done', 'gB') + '_'*12 + '\n'
 
 # ------------------- check_dependencies: ----------------------
@@ -263,7 +268,6 @@ try:
 except ImportError:
     required['python-requests'] = 1
 
-# openvpn = Popen(['whereis', 'openvpn'], stdout=PIPE).stdout.read()
 if not os.path.exists('/usr/sbin/openvpn'):
     required['openvpn'] = 1
 
@@ -320,7 +324,7 @@ while True:
             ranked, vpn_list = refresh_data()
         elif user_input.strip().lower() in 'config':
             get_input(config_file, [user_input])
-            proxy, port, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
+            proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
