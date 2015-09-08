@@ -3,12 +3,6 @@ VPN_GATE client for linux, be able to connect to open_vpn server through proxy
 by using python script. Auto add DNS to fix DNS leak.
 ![](http://s14.postimg.org/jcdi95dv5/Selection_008.png)
 
-**Outdated document**
-This document is for simple version in **old** directory.
-**cd vpngate-with-proxy/old** to use the old version
-Current version have more advantages such as doesn't use external bash script to change DNS, but need Sudo to run and still in testing
-Document will be updated later.
-
 #Dependency:
 * **openvpn**: ```$ sudo apt-get install openvpn```
 * **resolvconf**: ```$ sudo apt-get install resolvconf```

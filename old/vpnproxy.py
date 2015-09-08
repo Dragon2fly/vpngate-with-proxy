@@ -3,20 +3,14 @@
 __author__ = 'duc_tin'
 
 import os
-import signal
+import sys
 import base64
 import time
 import datetime
+import random
 from config import *
 from subprocess import call, Popen, PIPE
 
-# Get sudo privilege
-euid = os.geteuid()
-if euid != 0:
-    args = ['sudo', sys.executable] + sys.argv + [os.environ]
-    os.execlpe('sudo', *args)
-
-# Define some mirrors of vpngate.net
 mirrors = ['http://www.vpngate.net',
            'http://103.253.112.16:49882',
            'http://158.ip-37-187-34.eu:58272',
@@ -24,20 +18,17 @@ mirrors = ['http://www.vpngate.net',
            'http://hannan.postech.ac.kr:6395',
            'http://115.160.46.181:38061',
            'http://hornet.knu.ac.kr:36171',
-           'http://182-166-242-138f1.osk3.eonet.ne.jp:64298']
-
-# TODO: add user manual to this and can be access by h, help.
-# add option to change DNS differ from google
+           'http://182-166-242-138f1.osk3.eonet.ne.jp:64298',]
 
 
 class Server():
-    # if os.path.exists('/sbin/resolvconf'):
-    #     # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
-    #     dns_leak_stop = 'script-security 2\r\nup updatedns.sh\r\n'
-    #
-    # else:
-    #     print ''
-    #     dns_leak_stop = ''
+    if os.path.exists('/sbin/resolvconf'):
+        # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
+        dns_leak_stop = 'script-security 2\r\nup updatedns.sh\r\ndown updatedns.sh\r\n'
+
+    else:
+        print ''
+        dns_leak_stop = ''
 
     def __init__(self, data):
         self.ip = data[1]
@@ -59,8 +50,8 @@ class Server():
             txt_data = txt_data.replace('\r\n;http-proxy [proxy server] [proxy port]\r\n',
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
-        # if dns_fix == 'yes':
-        #     txt_data += Server.dns_leak_stop
+        if dns_fix == 'yes':
+            txt_data += Server.dns_leak_stop
 
         tmp_vpn = open('vpn_tmp', 'w+')
         tmp_vpn.write(txt_data)
@@ -81,25 +72,13 @@ def get_data():
             'http': 'http://' + proxy + ':' + port,
             'https': 'http://' + proxy + ':' + port,
         }
-
-        ping = ['ping', '-w 3', '-c 2', proxy]
-        res, err = Popen(ping, stdout=PIPE, stderr=PIPE).communicate()
-
-        if err != '':
-            print 'Ping proxy got error: ', ctext(err, 'r')
-            print 'Check your proxy setting'
-            sys.exit()
-        if not err and '100% packet loss' in res:
-            print ctext('Warning:', 'yB') + ctext('Proxy not response to ping', 'y')
-            print ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead", 'y')
-
     else:
         proxies = {}
 
     i = 0
     while i < len(mirrors):
         try:
-            print ctext('using gate: ', 'B'), mirrors[i]
+            print ctext('using gate: ', 'B'),  mirrors[i]
             gate = mirrors[i] + '/api/iphone/'
             vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
 
@@ -141,66 +120,6 @@ def refresh_data():
 
     return sort, vpnlist
 
-
-def dns_manager(action='backup', DNS=None):
-    global dns_fix
-
-    if dns_fix == 'no':
-        return
-    if not DNS:
-        DNS = ['8.8.8.8']
-    else:
-        DNS = DNS.replace(' ', '').split(',')
-
-    dns_orig = '/etc/resolv.conf'
-
-    if not os.path.exists(dns_orig):
-        print ctext('Backup DNS setting', 'yB')
-        backup = ['-a', '/etc/resolv.conf', '/etc/resolv.conf.bak']
-        call(['cp'] + backup)
-
-    if action == "change":
-        with open('/etc/resolv.conf', 'w+') as resolv:
-            for dns in DNS:
-                resolv.write('nameserver ' + dns + '\n')
-
-    elif action == "restore":
-        print ctext('\nRestore dns', 'yB')
-        reverseDNS = ['-a', '/etc/resolv.conf.bak', '/etc/resolv.conf']
-        call(['cp'] + reverseDNS)
-
-
-def vpn_manager(ovpn):
-    """ Check VPN season
-        If vpn tunnel break or fail to create, terminate vpn season
-        So openvpn not keep sending requests to proxy server and
-         save you from being blocked.
-    """
-    global dns, verbose
-
-    command = ['openvpn', '--config', ovpn]
-    p = Popen(command, stdout=PIPE, stdin=PIPE)
-    try:
-        while p.poll() is None:
-            line = p.stdout.readline()
-            if verbose == 'yes':
-                print line,
-            if 'Initialization Sequence Completed' in line:
-                dns_manager('change', dns)
-                print ctext('VPN tunnel established successfully'.center(40), 'B')
-                print 'Ctrl+C to quit VPN'.center(40)
-            if 'Restart pause, 5 second(s)' in line or 'Connection timed out' in line:
-                print line
-                print ctext('Terminate vpn', 'B')
-                p.send_signal(signal.SIGINT)
-    except KeyboardInterrupt:
-        p.send_signal(signal.SIGINT)
-        p.wait()
-        print ctext('VPN tunnel is terminated'.center(40), 'B')
-    finally:
-        dns_manager('restore')
-
-
 # ---------------------------- Main  --------------------------------
 # get config file path
 path = os.path.realpath(sys.argv[0])
@@ -213,47 +132,25 @@ if os.path.exists(config_file):
         # process commandline arguments
         get_input(config_file, args)
 
-    proxy, port, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
+    proxy, port, sort_by, use_proxy, country, dns_fix = read_config(config_file)
 
 else:
-    print '\n' + '_'*12 + ctext(' First time config ', 'gB') + '_'*12 + '\n'
-    print "If you don't know what to do, just press Enter to use default option\n"
-    use_proxy = 'no' if raw_input(ctext('Do you need proxy to connect? ', 'B')+'[yes|no(default)]:') in 'no' else 'yes'
+    use_proxy = 'no' if raw_input('Do you need proxy to connect .? (yes|no): ') in 'no' else 'yes'
     if use_proxy == 'yes':
-        print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
-        while 1:
-            try:
-                proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
-                port = port.strip()
-                if not 0 <= int(port) <= 65535:
-                    raise ValueError
-            except ValueError:
-                print ctext(' Error: Http proxy must in format ', 'r')+ctext('address:port', 'B')
-                print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
-                print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
-            else:
-                break
-
+        print ' Input your http proxy such as' + ctext('www.abc.com:8080','pB')
+        proxy, port = raw_input(' Your\033[95m proxy:port \033[0m:').split(':')
     else:
         proxy, port = '', ''
-
-    sort_by = raw_input(ctext('\nSort servers by ', 'B') + '[speed (default) | ping | score | up time]: ')
+    sort_by = raw_input('Sort servers by [speed (default) | ping | score | up time]:')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
         sort_by = 'speed'
-
-    country = raw_input(ctext('\nFilter server by country ','B') + '[eg: all (default), jp, japan]: ')
+    country = raw_input('Filter server by country [eg: all(default), jp, japan]:')
     if not country:
         country = 'all'
 
-    dns_fix = 'yes' if raw_input(ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
-    dns = ''
-    if dns_fix == 'yes':
-        dns = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
-    if not dns:
-        dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
+    dns_fix = 'yes' if raw_input(' Fix DNS leaking [yes (default) | no] : ') in 'yes' else 'no'
 
-    write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix, dns)
-    print '\n' + '_'*12 + ctext(' Config done', 'gB') + '_'*12 + '\n'
+    write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix)
 
 # ------------------- check_dependencies: ----------------------
 required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
@@ -272,7 +169,7 @@ if not os.path.exists('/sbin/resolvconf'):
 
 need = [p for p in required if required[p]]
 if need:
-    print ctext('\n**Lack of dependencies**', 'rB')
+    print ctext('\n**Lack of dependencies**','rB')
     env = dict(os.environ)
     env['http_proxy'] = 'http://' + proxy + ':' + port
     env['https_proxy'] = 'http://' + proxy + ':' + port
@@ -280,13 +177,11 @@ if need:
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
-        call(['apt-get', 'install', package], env=env)
+        call(['sudo', '-E', 'apt-get', 'install', package], env=env)
 
     import requests
 
-
 # -------- all dependencies should be available after this line ----------------------
-dns_manager()
 ranked, vpn_list = refresh_data()
 
 labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol']
@@ -314,13 +209,12 @@ while True:
         server_sum = min(len(ranked), 20)
         user_input = raw_input(ctext('Vpn command: ', 'gB'))
         if user_input.strip().lower() in ['q', 'quit', 'exit']:
-            print ctext('Goodbye'.center(40), 'gB')
             sys.exit()
         elif user_input.strip().lower() in 'refresh':
             ranked, vpn_list = refresh_data()
         elif user_input.strip().lower() in 'config':
             get_input(config_file, [user_input])
-            proxy, port, sort_by, use_proxy, country, dns_fix, verbose = read_config(config_file)
+            proxy, port, sort_by, use_proxy, country, dns_fix = read_config(config_file)
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
@@ -329,12 +223,12 @@ while True:
             connected_servers.append(vpn_list[ranked[chose]].ip)
             vpn_file = vpn_list[ranked[chose]].write_file()
             vpn_file.close()
-            vpn_manager(os.path.abspath(vpn_file.name))
+            call(['sudo', 'openvpn', '--config', os.path.abspath(vpn_file.name)])
         else:
             print 'Invalid command!'
             print '  q(uit) to quit\n  r(efresh) to refresh table\n' \
                   '  c(onfig) to change setting\n  number in range 0~%s to choose vpn\n' % (server_sum - 1)
-            time.sleep(3)
+            time.sleep(2)
 
     except KeyboardInterrupt:
         time.sleep(0.5)
