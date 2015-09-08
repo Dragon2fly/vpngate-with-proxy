@@ -152,7 +152,7 @@ def dns_manager(action='backup', DNS=None):
     else:
         DNS = DNS.replace(' ', '').split(',')
 
-    dns_orig = '/etc/resolv.conf'
+    dns_orig = '/etc/resolv.conf.bak'
 
     if not os.path.exists(dns_orig):
         print ctext('Backup DNS setting', 'yB')
