@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-__author__ = 'duc_tin'
+__author__ = "duc_tin"
+__copyright__ = "Copyright 2015+, duc_tin"
+__license__ = "GPLv2"
+__version__ = "1.0"
+__maintainer__ = "duc_tin"
+__email__ = "nguyenbaduc.tin@gmail.com"
 
 import os
 import signal
@@ -139,7 +144,7 @@ def refresh_data():
     elif sort_by == 'score':
         sort = sorted(vpnlist.keys(), key=lambda x: vpnlist[x].score, reverse=True)
     elif sort_by == 'up time':
-        sort = sorted(vpnlist.keys(), key=lambda x: vpnlist[x].uptime)
+        sort = sorted(vpnlist.keys(), key=lambda x: int(vpnlist[x].uptime))
     else:
         print '\nValueError: sort_by must be in "speed|ping|score|up time" but got "%s" instead.' % sort_by
         print 'Change your setting by "$ ./vpnproxy config"\n'
@@ -328,6 +333,7 @@ while True:
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
+            print time.ctime().center(40)
             print ('Connect to ' + vpn_list[ranked[chose]].country_long).center(40)
             print vpn_list[ranked[chose]].ip.center(40)
             connected_servers.append(vpn_list[ranked[chose]].ip)
