@@ -45,7 +45,7 @@ def get_input(config_path, option):
             user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
                 print 'Process to vpn server list'
-                write_config(config_path, proxy, port, sort_by, use_proxy, country, fix_dns, dns)
+                write_config(config_path, proxy, port, sort_by, use_proxy, country, fix_dns, dns, verbose)
                 return
             elif user_input == '1':
                 proxy = raw_input('Your http_proxy:')

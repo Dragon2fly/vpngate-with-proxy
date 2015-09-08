@@ -320,7 +320,7 @@ while True:
             ranked, vpn_list = refresh_data()
         elif user_input.strip().lower() in 'config':
             get_input(config_file, [user_input])
-            proxy, port, sort_by, use_proxy, country, dns_fix, verbose = read_config(config_file)
+            proxy, port, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
