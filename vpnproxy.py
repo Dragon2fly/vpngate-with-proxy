@@ -251,8 +251,8 @@ else:
         dns = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
     if not dns:
         dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
-
-    write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix, dns)
+    verbose = 'no'
+    write_config(config_file, proxy, port, sort_by, use_proxy, country, dns_fix, dns, verbose)
     print '\n' + '_'*12 + ctext(' Config done', 'gB') + '_'*12 + '\n'
 
 # ------------------- check_dependencies: ----------------------
