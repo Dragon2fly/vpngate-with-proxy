@@ -245,7 +245,7 @@ else:
                 break
 
     else:
-        proxy, port = '', ''
+        proxy, port, ip = '', '', ''
 
     sort_by = raw_input(ctext('\nSort servers by ', 'B') + '[speed (default) | ping | score | up time]: ')
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
