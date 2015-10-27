@@ -96,7 +96,7 @@ class PopUpSortBy(urwid.WidgetWrap):
         self._emit("close")
 
     def keypress(self, size, key):
-        if key == self.trigger:
+        if key in [self.trigger, 'esc']:
             self._emit("close")
             return self.trigger
         else:
@@ -120,7 +120,7 @@ class PopUpCountry(urwid.WidgetWrap):
         self.chosen = self.filter.get_edit_text()
 
     def keypress(self, size, key):
-        if key == self.trigger:
+        if key in [self.trigger, 'esc']:
             self._emit("close")
         elif key == 'esc':
             self.filter.set_edit_text('')
@@ -220,7 +220,7 @@ class PopUpDNS(urwid.WidgetWrap):
 
     def keypress(self, size, key):
         position = self.pile.focus_position
-        if key == self.trigger:
+        if key in [self.trigger, 'esc']:
             self._emit("close")
         elif key == 'enter' and 0 < position < len(self.pile.widget_list)-1:
             self.pile.focus_position += 1
