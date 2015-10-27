@@ -158,7 +158,7 @@ server, that doesn't mean you are totally safe.
   3. `sudo iptables -F` to delete all changes to the iptable, then `sudo service networ-manager restart`
   and do step 2 again.
 
-  If it still doesn't or your os doesn't have `networ-manager`, restart your system.
+  If it still doesn't or your os doesn't have `network-manager`, restart your system.
   If it still doesn't, your proxy may be offline. Ping it from another computer.
   If you don't need proxy to access the Internet and your network still not back to normal, I DON'T KNOW
 
