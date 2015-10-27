@@ -120,8 +120,8 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   A successful connection doesn't mean you have access to the Internet. If you can access the Internet through selected vpn
 server, that doesn't mean you are totally safe.
   1. Check if you can access the Internet:
-  * try browse some websites, if they are loaded, that's the good sign.
-  * or type `r` then Enter to see if it can fetch the new server list. This time, it will fetch data directly through vpn
+    * try browse some websites, if they are loaded, that's the good sign.
+    * or type `r` then Enter to see if it can fetch the new server list. This time, it will fetch data directly through vpn
   and not using the configured proxy. If the server list is *refreshed* almost instantly, that's the good sign.
 
   If there is no good sign, choose another server.
@@ -129,19 +129,18 @@ server, that doesn't mean you are totally safe.
   2. Check DNS leak:
   If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
   unless you type IP address directly.
-  * Turn on `DNS fix` by press `F3` before connecting to vpn server.
-  Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
-  * Test if your dns provider is different from your local: https://www.dnsleaktest.com or https://ipleak.net
+    * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
+    * Test if your dns provider is different from your local: https://www.dnsleaktest.com or https://ipleak.net
 
-   If DNS is not changed, something when wrong! You should make an issue about this.
+    If DNS is not changed, something when wrong! You should make an issue about this.
 
-  * To view or change settings before the program fetches server's list:
-  ```Shell
-  ~/vpngate-with-proxy$ ./vpnproxy_tui.py config
-  ```
+    * To view or change settings before the program fetches server's list:
+    ```Shell
+    ~/vpngate-with-proxy$ ./vpnproxy_tui.py config
+    ```
   
-  * To view or change settings at server's list: type **c** or **config** then Enter
-  * For more commands, read **Commands**
+    * To view or change settings at server's list: type **c** or **config** then Enter
+    * For more commands, read **Commands**
   
 
 # Commands:
