@@ -121,8 +121,8 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 server, that doesn't mean you are totally safe.
   1. Check if you can access the Internet:
     * try browse some websites, if they are loaded, that's the good sign.
-    * or type `r` then Enter to see if it can fetch the new server list. This time, it will fetch data directly through vpn
-  and not using the configured proxy. If the server list is *refreshed* almost instantly, that's the good sign.
+    * or type `r` then Enter to see if it can fetch the new server list. This time, it will fetch data directly through vpn,
+   not using the configured proxy. If the server list is *refreshed* almost instantly, that's the good sign.
 
   If there is no good sign, choose another server.
 
