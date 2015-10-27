@@ -19,7 +19,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 # How to use:
 
 ### 0. Pre-installation
-  * If you has just install your os, please update your os for it to fetch packages list and know where to download
+  * If you has just installed your os, please update your os for it to fetch packages list and know where to download
   other packages later.
 
   ```Shell
