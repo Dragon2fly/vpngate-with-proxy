@@ -142,6 +142,29 @@ server, that doesn't mean you are totally safe.
   
   * (vpnproxy_cli.py only) To view or change settings at server's list: type **c** or **config** then Enter
 
-  * **Ctrl+z**: while openvpn is connecting will kill the program immediately and leave the vpn connection intact.
-             If the server you are connecting to die, you won't be able to reconnect to the Internet.
-             Restart your computer or try  **sudo iptables -F** to fix
+  * **Ctrl+z**: Try not to press this combination while program is running. It will not terminate the vpn tunnel nor kill the program properly.
+   Which means iptable may be left messed up, DNS won't reset to original, you may be still in vpn.
+    You will lose access to the Internet soon.
+
+# Troubleshoot:
+  Symptom: The program is unable to fetch new server data nor connect to any vpn server, your networking is not back to normal.
+
+  That is when `restore`, `kill` and `log on` *command* come in handy.
+
+  1. **kill** all openvpn processes
+  2. **quit** the program and launch it again. If it can fetch the server data, OK.
+
+  If it doesn't
+  3. `sudo iptables -F` to delete all changes to the iptable, then `sudo service networ-manager restart`
+  and do step 2 again.
+
+  If it still doesn't or your os doesn't have `networ-manager`, restart your system.
+  If it still doesn't, your proxy may be offline. Ping it from another computer.
+  If you don't need proxy to access the Internet and your network still not back to normal, I DON'T KNOW
+
+
+
+
+
+
+
