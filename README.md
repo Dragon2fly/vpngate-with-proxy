@@ -25,14 +25,14 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   ```Shell
   $ sudo apt-get update && sudo apt-get upgrade
   ```
-  * If your network is behind a proxy
+  If your network is behind a proxy
   ```Shell
     $ export http_proxy="http://your_proxy:your_port"
     $ export https_proxy="http://your_proxy:your_port"
     $ sudo -E apt-get update && sudo apt-get upgrade
   ```
 
-  Please check the os clock and calendar is correct for openvpn authentication works properly.
+  * Please check the os clock and calendar is correct for openvpn authentication works properly.
 
 ###1. Installation:
 
