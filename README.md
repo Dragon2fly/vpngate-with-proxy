@@ -69,11 +69,11 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   which will launch the terminal user interface version. If you don't want complicated, you can use **vpnproxy_cli.py**
   instead.
 
-  Then program will first setup a configuration by asking you for
+  Then the program will first setup a configuration file `config.ini` by asking you for
    - Do you need **proxy** to connect to the Internet
-   - How to *sort* the result descending (by **speed** or **ping** or **up time** or **score**)
+   - How to *sort* the result descending (by **speed** or **ping** or **score**) or ascending  ()**up time**)
    - Filter the result by what **country**
-   - Do you want to fix dns, which **dns** you want to use
+   - Do you want to fix dns leak, which **dns** you want to use
 
   With setting that has **default** option, you can just press Enter to choose it.
 
@@ -103,8 +103,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
     * **restore**: will restore your system DNS back to original one
     * **kill**: send SIGTERM to all `openvpn` processes
     * **q**: terminate vpn tunnel, then quit the program
-    * **log**: check if current season is logged or not. Log file is `vpn.log` and is in the same folder with this program.
-    Every time you start the program, log file is rewritten (old content will be lost) if `log` is turned on.
+    * **log**: check if current season is logged or not. Log file is `vpn.log` and is in the same folder with this program. Every time you start the program, log file is rewritten (old content will be lost) if `log` is turned on.
       * **log on**: turn on logging
       * **log off**: turn off logging
 
@@ -119,14 +118,14 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
       Else, quit the program
 
 ### 4. After VPN Tunnel is established successfully:
-A successful connection doesn't mean you have access to the Internet. If you can access the Internet through selected vpn
+  A successful connection doesn't mean you have access to the Internet. If you can access the Internet through selected vpn
 server, that doesn't mean you are totally safe.
   1. Check if you can access the Internet:
   * try browse some websites, if they are loaded, that's the good sign.
   * or type `r` then Enter to see if it can fetch the new server list. This time, it will fetch data directly through vpn
   and not using the configured proxy. If the server list is *refreshed* almost instantly, that's the good sign.
 
-....   If there is no good sign, choose another server.
+  If there is no good sign, choose another server.
 
   2. Check DNS leak:
   If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
