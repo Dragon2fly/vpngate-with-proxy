@@ -9,10 +9,10 @@ I will wrap SSL_vpn later when I have time, or you're welcomed to fork this and 
 
 #Dependency:
 * **openvpn**: ```$ sudo apt-get install openvpn```
-* **resolvconf**: ```$ sudo apt-get install resolvconf```   (Only if you use the version in 'old' directory)
+* **resolvconf**: ```$ sudo apt-get install resolvconf```   Only if you use the version in 'old' directory
 * **python 2.7.x**: should already be shipped with your linux
 * **python-requests**: ```$ sudo apt-get install python-requests```
-* **python-urwid**: ```$ sudo apt-get install python-urwid```(Only if you use `tui` version (terminal user interface))
+* **python-urwid**: ```$ sudo apt-get install python-urwid```Only if you use `tui` version (terminal user interface)
 
 Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
 
