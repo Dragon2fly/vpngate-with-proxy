@@ -128,7 +128,7 @@ server, that doesn't mean you are totally safe.
 
   2. Check DNS leak:
   If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
-  unless you type IP address directly.
+   unless you type IP address directly.
     * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
     * Test if your dns provider is different from your local: https://www.dnsleaktest.com or https://ipleak.net
 
@@ -160,7 +160,7 @@ server, that doesn't mean you are totally safe.
 
   If it still doesn't or your os doesn't have `network-manager`, restart your system.
   If it still doesn't, your proxy may be offline. Ping it from another computer.
-  If you don't need proxy to access the Internet and your network still not back to normal, I DON'T KNOW
+  If you don't need proxy to access the Internet and your network still not back to normal, I DON'T KNOW!
 
 
 
