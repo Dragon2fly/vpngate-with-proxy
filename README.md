@@ -99,6 +99,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 
   * **Vpn command**: As you mentioned above, give an index of the server then hit Enter
   will open a vpn tunnel from your to that server. And there are still some more.
+
     * **r**, **refresh**: fetch new server's data from vpngate.net or mirrors
     * **restore**: will restore your system DNS back to original one
     * **kill**: send SIGTERM to all `openvpn` processes
