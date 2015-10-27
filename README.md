@@ -1,27 +1,39 @@
 # vpngate-with-proxy
-VPN_GATE client for linux, be able to connect to open_vpn server through proxy
+VPN GATE client for linux, be able to connect to open_vpn server through proxy
 by using python script. Auto add DNS to fix DNS leak.
+Work on debian based system. Tested on Ubuntu and Raspbian.
+
+I will wrap SSL_vpn later when I have time, or you're welcomed to fork this and do it yourself.
+
 ![](http://s14.postimg.org/jcdi95dv5/Selection_008.png)
-
-**Outdated document**
-
-This document is for simple version in **old** directory.
-
-**cd vpngate-with-proxy/old** to use the old version
-
-Current version have more advantages such as doesn't use external bash script to change DNS, but need Sudo to run and still in testing
-
-Document will be updated later.
 
 #Dependency:
 * **openvpn**: ```$ sudo apt-get install openvpn```
-* **resolvconf**: ```$ sudo apt-get install resolvconf```
+* **resolvconf**: ```$ sudo apt-get install resolvconf```   (Only if you use the version in 'old' directory)
 * **python 2.7.x**: should already be shipped with your linux
 * **python-requests**: ```$ sudo apt-get install python-requests```
+* **python-urwid**: ```$ sudo apt-get install python-urwid```(Only if you use `tui` version (terminal user interface))
 
-Except *python 2.7.x*, all other dependencies can be automatically installed at first run.
+Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
 
 #How to use:
+
+###0. Pre-installation
+  If you has just install your os, please update your os for it to fetch packages list and know where to download
+  other packages later.
+
+  ```Shell
+  $ sudo apt-get update && sudo apt-get upgrade
+  ```
+  **If your network is behind a proxy**
+  ```Shell
+    $ export http_proxy="http://your_proxy:your_port"
+    $ export https_proxy="http://your_proxy:your_port"
+    $ sudo -E apt-get update && sudo apt-get upgrade
+  ```
+
+  Please check the os clock and calendar is correct for openvpn authentication works properly.
+
 ###1. Installation:
 
   Using *git*:
