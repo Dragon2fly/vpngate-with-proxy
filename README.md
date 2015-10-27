@@ -19,13 +19,13 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 #How to use:
 
 ###0. Pre-installation
-  If you has just install your os, please update your os for it to fetch packages list and know where to download
+  *If you has just install your os, please update your os for it to fetch packages list and know where to download
   other packages later.
 
   ```Shell
   $ sudo apt-get update && sudo apt-get upgrade
   ```
-  **If your network is behind a proxy**
+  *If your network is behind a proxy
   ```Shell
     $ export http_proxy="http://your_proxy:your_port"
     $ export https_proxy="http://your_proxy:your_port"
