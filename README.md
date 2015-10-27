@@ -132,26 +132,16 @@ server, that doesn't mean you are totally safe.
     * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
     * Test if your dns provider is different from your local: https://www.dnsleaktest.com or https://ipleak.net
 
-    If DNS is not changed, something when wrong! You should make an issue about this.
+  If DNS is not changed, something when wrong! You should make an issue about this.
 
-    * To view or change settings before the program fetches server's list:
-    ```Shell
-    ~/vpngate-with-proxy$ ./vpnproxy_tui.py config
-    ```
+### 5. Some notes:
+  * To view or change settings before the program fetches server's list:
+  ```Shell
+  ~/vpngate-with-proxy$ ./vpnproxy_tui.py config
+  ```
   
-    * To view or change settings at server's list: type **c** or **config** then Enter
-    * For more commands, read **Commands**
-  
+  * (vpnproxy_cli.py only) To view or change settings at server's list: type **c** or **config** then Enter
 
-# Commands:
-* **c**, **config** : to view current settings about proxy, sorting parameter, country filter ...
-* **number** : in *settings screen*, change each setting by enter its correspondent number. In *server's list*, choose the server you want to connect by its index
-              
-* **q**, **exit**: in *server's list*, quit the program
-* **r**, **refresh** : in *server's list*, fetch new server's data from vpngate.net
-* **Ctrl+c** : while openvpn is connecting, terminate current vpn connection and return to server's list
-
-# Note:
-* **Ctrl+z**: while openvpn is connecting will kill the program immediately and leave the vpn connection intact.
+  * **Ctrl+z**: while openvpn is connecting will kill the program immediately and leave the vpn connection intact.
              If the server you are connecting to die, you won't be able to reconnect to the Internet.
              Restart your computer or try  **sudo iptables -F** to fix
