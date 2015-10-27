@@ -88,8 +88,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 
   * Your currently chosen server will be highlighted with `dark blue` color.
   * All connected servers before the current one is show in `dark red` color.
-  * Change your desire setting by press the `F#` key corresponding to that setting. Hit that `F#` key again to discard
-  all changes and close setting popup. Setting will only be saved when you hit `<OK>` or Enter.
+  * Change your desire setting by press the `F#` key corresponding to that setting. Hit that `F#` key again to discard all changes and close setting popup. Setting will only be saved when you hit `<OK>` or Enter.
     * **F2**: **Proxy**, use http proxy? address? port?
     * **F3**: **DNS**, change DNS when connecting to vpn? which dns to change to?
     * **F4**: **Country**, looking for a specific country or all that available?
