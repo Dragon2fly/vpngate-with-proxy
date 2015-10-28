@@ -111,9 +111,9 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
     * **Up, Down, PgUp, PgDown**: scroll the server list
     * **F10**      : toggle logging on/off
     * **Esc**      : clear the text in any input form (*vpn command*, *Proxy*, *Country*)
-    * **Ctrl + F5**: the same as *command* `r` or `refresh`
-    * **Ctrl + r** : the same as *command* `restore`
-    * **Ctrl + k** : the same as *command* `kill`
+    * **Ctrl + F5**: the same as `r` or `refresh` *command*
+    * **Ctrl + r** : the same as `restore` *command*
+    * **Ctrl + k** : the same as `kill` *command*
     * **Ctrl + c** : if connected to vpn server, terminate vpn tunnel, turn back to normal state.
       Else, quit the program
 
