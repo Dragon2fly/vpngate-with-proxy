@@ -155,6 +155,8 @@ server, that doesn't mean you are totally safe.
    ![log](http://s19.postimg.org/5c48tuzur/7loglines.png)
    The log is shown up side down so the latest information will be in the highest place
 
+  * If your terminal looks weird after program crashed, `reset` would help
+
 
 # Troubleshoot:
   Symptom: The program is unable to fetch new server data nor connect to any vpn server, your networking is not back to normal.
