@@ -149,7 +149,7 @@ server, that doesn't mean you are totally safe.
 
   * The program only shows the last log line at the bottom of terminal. In fact, there is 20 last lines of the log.
    To view these line, you just need to extend the high of the terminal window.
-   ![]()http://s19.postimg.org/5c48tuzur/7loglines.png)
+   ![log](http://s19.postimg.org/5c48tuzur/7loglines.png)
    The log is shown up side down so the latest information will be in the highest place
 
 
