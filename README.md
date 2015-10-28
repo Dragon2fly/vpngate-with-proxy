@@ -147,6 +147,12 @@ server, that doesn't mean you are totally safe.
    Which means iptable may be left messed up, DNS won't reset to original, you may be still in vpn.
     You will lose access to the Internet soon.
 
+  * The program only shows the last log line at the bottom of terminal. In fact, there is 20 last lines of the log.
+   To view these line, you just need to extend the high of the terminal window.
+   ![log]()http://s19.postimg.org/5c48tuzur/7loglines.png)
+   The log is shown up side down so the latest information will be in the highest place
+
+
 # Troubleshoot:
   Symptom: The program is unable to fetch new server data nor connect to any vpn server, your networking is not back to normal.
 
