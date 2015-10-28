@@ -184,10 +184,14 @@ class PopUpProxy(urwid.WidgetWrap):
             self.input_port.set_edit_text(self.chosen[2])
             self._emit("close")
         elif key == 'esc':
-            if position == 1:
+            if position == 1 and self.input_addr.edit_text:
                 self.input_addr.set_edit_text('')
-            elif position == 2:
+            elif position == 2 and self.input_port.edit_text:
                 self.input_port.set_edit_text('')
+            else:
+                self.input_addr.set_edit_text(self.chosen[1])
+                self.input_port.set_edit_text(self.chosen[2])
+                self._emit("close")
         elif key == 'enter' and 0 < position < len(self.pile.widget_list)-1:
             self.pile.focus_position += 1
         else:
