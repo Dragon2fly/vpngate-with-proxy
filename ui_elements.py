@@ -121,6 +121,7 @@ class PopUpCountry(urwid.WidgetWrap):
 
     def keypress(self, size, key):
         if key in [self.trigger, 'esc']:
+            self.filter.set_edit_text(self.chosen)
             self._emit("close")
         elif key == 'esc':
             self.filter.set_edit_text('')
@@ -162,11 +163,11 @@ class PopUpProxy(urwid.WidgetWrap):
 
     def item_callback(self, Button, data=None):
         port = self.input_port.edit_text
-        addr = self.input_addr.edit_text
+        addr = self.input_addr.edit_text.replace('http://', '')
         if self.yn == 'yes':
             if 'Invalid' in addr + port:
                 return
-            if not addr:
+            if not addr or not port:
                 self.input_addr.set_edit_text('Invalid Address!')
             if not 0 <= int(port) <= 65535:
                 self.input_port.set_edit_text('Invalid number!')
@@ -179,6 +180,8 @@ class PopUpProxy(urwid.WidgetWrap):
     def keypress(self, size, key):
         position = self.pile.focus_position
         if key == self.trigger:
+            self.input_addr.set_edit_text(self.chosen[1])
+            self.input_port.set_edit_text(self.chosen[2])
             self._emit("close")
         elif key == 'esc':
             if position == 1:
@@ -221,6 +224,7 @@ class PopUpDNS(urwid.WidgetWrap):
     def keypress(self, size, key):
         position = self.pile.focus_position
         if key in [self.trigger, 'esc']:
+            self.input_dns.set_edit_text(self.chosen[1])
             self._emit("close")
         elif key == 'enter' and 0 < position < len(self.pile.widget_list)-1:
             self.pile.focus_position += 1
