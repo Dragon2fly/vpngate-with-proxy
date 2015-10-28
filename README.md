@@ -130,8 +130,11 @@ server, that doesn't mean you are totally safe.
   2. Check DNS leak:
   If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
    unless you type IP address directly.
-    * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
-    * Test if your dns provider is different from your local: https://www.dnsleaktest.com or https://ipleak.net
+
+     To know your current DNS provider, https://www.dnsleaktest.com or https://ipleak.net
+
+     * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
+     * Connect to any VPN server and test if your dns provider is changed.
 
   If DNS is not changed, something when wrong! You should make an issue about this.
 
@@ -148,7 +151,7 @@ server, that doesn't mean you are totally safe.
     You will lose access to the Internet soon.
 
   * The program only shows the last log line at the bottom of terminal. In fact, there is 20 last lines of the log.
-   To view these line, you just need to extend the high of the terminal window.
+   To view these lines, you just need to extend the high of the terminal window.
    ![log](http://s19.postimg.org/5c48tuzur/7loglines.png)
    The log is shown up side down so the latest information will be in the highest place
 
