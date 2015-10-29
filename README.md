@@ -1,5 +1,5 @@
 # vpngate-with-proxy
-VPN GATE client for linux, be able to connect to open_vpn server through proxy
+VPN GATE client for linux, be able to connect to open vpn server through proxy
 by using python script. Auto add DNS to fix DNS leak. You can use this program with or without proxy.
 
 Work on debian based system. Tested on Ubuntu and Raspbian.
@@ -155,7 +155,7 @@ server, that doesn't mean you are totally safe.
    ![log](http://s19.postimg.org/5c48tuzur/7loglines.png)
    The log is shown up side down so the latest information will be in the highest place
 
-  * If your terminal looks weird after program crashed, `reset` would help
+  * If your terminal looks weird after program crashed or `Ctrtl+z`, `$ reset` would help
 
 
 # Troubleshoot:
@@ -167,7 +167,7 @@ server, that doesn't mean you are totally safe.
   2. **quit** the program and launch it again. If it can fetch the server data, OK.
 
   If it doesn't
-  3. `sudo iptables -F` to delete all changes to the iptable, then `sudo service network-manager restart`
+  3. `sudo iptables -F` to delete all changes to the iptable, then `$ sudo service network-manager restart`
   and do step 2 again.
 
   If it still doesn't or your os doesn't have `network-manager`, restart your system.

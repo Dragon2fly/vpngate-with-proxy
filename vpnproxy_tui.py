@@ -234,6 +234,7 @@ class Connection:
             sys.exit()
 
         self.sorted[:] = sort
+        self.dns_manager()
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
