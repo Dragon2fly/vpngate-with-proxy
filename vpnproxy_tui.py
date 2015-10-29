@@ -716,10 +716,6 @@ class Display:
 vpn_connect = Connection()  # initiate network parameter
 
 # ------------------- check_dependencies: ---------------------------
-def dependency_installer(package):
-    import pip
-    pip.main(['install', package])
-
 required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0}
 for module in ['pip', 'requests', 'urwid']:
     try:
@@ -744,7 +740,7 @@ if need:
         if package in ['openvpn', 'python-pip']:
             call(['apt-get', 'install', package], env=env)
         else:
-            dependency_installer(package)
+            call(['pip', 'install', package], env=env)
 
     raw_input(ctext('  Done!\n  Press Enter to continue', 'g'))
 
