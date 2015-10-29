@@ -731,6 +731,7 @@ if not os.path.exists('/usr/sbin/openvpn'):
 need = [p for p in required if required[p]]
 if need:
     print ctext('\n**Lack of dependencies**', 'rB')
+    sys.path.append('/usr/lib/'+sys.version[:3]+'/dist-packages')
     env = dict(os.environ)
     if vpn_connect.use_proxy == 'yes':
         env['http_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
