@@ -57,7 +57,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   ```
 
 ### 2. First run:
-  If you have configured system wide proxy, it'd better to turn it off. After vpn tunnel is established,
+  If you have configured **system wide proxy**, it'd better to **turn** it **off**. After vpn tunnel is established,
   the programs that use system wide proxy may failed to connect to the internet using your proxy.
 
   Launch vpngate-with-proxy by
@@ -136,7 +136,7 @@ server, that doesn't mean you are totally safe.
      * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
      * Connect to any VPN server and test if your dns provider is changed.
 
-  If DNS is not changed, something when wrong! You should make an issue about this.
+  If DNS is not changed, make sure that you have turned off your system wide proxy and try again.
 
 ### 5. Some notes:
   * To view or change settings before the program fetches server's list:
