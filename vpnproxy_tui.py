@@ -234,13 +234,11 @@ class Connection:
             sys.exit()
 
         self.sorted[:] = sort
-        self.dns_manager()
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
 
         if not os.path.exists(dns_orig):
-            print ctext('Backup DNS setting', 'yB')
             backup = ['-a', '/etc/resolv.conf', '/etc/resolv.conf.bak']
             call(['cp'] + backup)
 
