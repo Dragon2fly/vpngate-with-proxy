@@ -721,7 +721,9 @@ for module in ['pip', 'requests', 'urwid']:
     try:
         __import__(module, globals(), locals(), [], -1)
     except ImportError:
-        required['python-'+module] = 1
+        if 'pip' in module:
+            module = 'python-'+module
+        required[module] = 1
 
 if not os.path.exists('/usr/sbin/openvpn'):
     required['openvpn'] = 1
