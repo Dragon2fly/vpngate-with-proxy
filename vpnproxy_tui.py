@@ -728,7 +728,7 @@ for module in ['pip', 'requests', 'urwid']:
 if not os.path.exists('/usr/sbin/openvpn'):
     required['openvpn'] = 1
 
-need = [p for p in required if required[p]]
+need = sorted([p for p in required if required[p]])
 if need:
     print ctext('\n**Lack of dependencies**', 'rB')
     sys.path.append('/usr/local/lib/python'+sys.version[:3]+'/dist-packages')
