@@ -731,7 +731,7 @@ if not os.path.exists('/usr/sbin/openvpn'):
 
 need = sorted([p for p in required if required[p]])
 if need:
-    print ctext('\n**Lack of dependencies**', 'rB')
+    print ctext('\n**Lack of dependencies**\n', 'rB')
     env = dict(os.environ)
     if vpn_connect.use_proxy == 'yes':
         env['http_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
@@ -743,8 +743,6 @@ if need:
     if update_now == 'yes':
         call(['apt-get', 'update'], env=env)
 
-    sys.path.append('/usr/local/lib/python' + sys.version[:3] + '/dist-packages')
-
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
@@ -752,7 +750,7 @@ if need:
             call(['apt-get', 'install', package], env=env)
         else:
             call(['pip', 'install', package], env=env)
-
+            globals()[package] = __import__(package)
     raw_input(ctext('  Done!\n  Press Enter to continue', 'g'))
 
 import requests
