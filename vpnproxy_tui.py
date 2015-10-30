@@ -716,7 +716,7 @@ class Display:
 vpn_connect = Connection()  # initiate network parameter
 
 # ------------------- check_dependencies: ---------------------------
-required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0}
+required = {'openvpn': 0, 'requests': 0, 'urwid': 0}
 for module in ['pip', 'requests', 'urwid']:
     try:
         __import__(module, globals(), locals(), [], -1)
@@ -731,8 +731,12 @@ if not os.path.exists('/usr/sbin/openvpn'):
 need = sorted([p for p in required if required[p]])
 if need:
     print ctext('\n**Lack of dependencies**', 'rB')
+
+    links = {'urwid': ('https://pypi.python.org/packages/source/u/urwid/urwid-1.3.0.tar.gz', 'urwid-1.3.0'),
+             'requests': ('https://pypi.python.org/packages/source/r/requests/requests-2.8.1.tar.gz', 'requests-2.8.1')}
     sys.path.append('/usr/local/lib/python'+sys.version[:3]+'/dist-packages')
     env = dict(os.environ)
+
     if vpn_connect.use_proxy == 'yes':
         env['http_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
         env['https_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
@@ -740,10 +744,12 @@ if need:
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
-        if package in ['openvpn', 'python-pip']:
+        if package == 'openvpn':
             call(['apt-get', 'install', package], env=env)
         else:
-            call(['pip', 'install', package], env=env)
+            call(['wget', package[1]], env=env)
+            call(['cd', package[2]], env=env)
+            call(['python', 'setup.py', 'install'], env=env)
 
     raw_input(ctext('  Done!\n  Press Enter to continue', 'g'))
 
