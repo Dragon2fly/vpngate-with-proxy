@@ -117,9 +117,10 @@ class Connection:
         self.verbose = self.configs[8]
 
     def first_config(self):
-        print '\n' + '_'*12 + ctext(' First time config ', 'gB') + '_'*12 + '\n'
+        print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
         print "If you don't know what to do, just press Enter to use default option\n"
-        use_proxy = 'no' if raw_input(ctext('Do you need proxy to connect? ', 'B')+'[yes|no(default)]:') in 'no' else 'yes'
+        use_proxy = 'no' if raw_input(
+            ctext('Do you need proxy to connect? ', 'B') + '[yes|no(default)]:') in 'no' else 'yes'
         if use_proxy == 'yes':
             print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
             while 1:
@@ -130,7 +131,7 @@ class Connection:
                     if not 0 <= int(port) <= 65535:
                         raise ValueError
                 except ValueError:
-                    print ctext(' Error: Http proxy must in format ', 'r')+ctext('address:port', 'B')
+                    print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
                     print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
                     print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
                 else:
@@ -143,7 +144,7 @@ class Connection:
         if sort_by not in ['speed', 'ping', 'score', 'up time']:
             sort_by = 'speed'
 
-        country = raw_input(ctext('\nFilter server by country ','B') + '[eg: all (default), jp, japan]: ')
+        country = raw_input(ctext('\nFilter server by country ', 'B') + '[eg: all (default), jp, japan]: ')
         if not country:
             country = 'all'
 
@@ -155,7 +156,7 @@ class Connection:
             dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
         verbose = 'no' if 'n' in raw_input(ctext('Write openvpn log? [yes (default)| no]: ', 'B')) else 'yes'
         write_config(self.config_file, proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose)
-        print '\n' + '_'*12 + ctext(' Config done', 'gB') + '_'*12 + '\n'
+        print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
     def get_data(self):
         if self.use_proxy == 'yes' and not self.connect_status:
@@ -171,7 +172,7 @@ class Connection:
                 self.proxy = self.ip
             elif err1 and err2:
                 self.messages['debug'][0] += '[failed]'
-                self.messages['debug'].appendleft('  Ping proxy got error: '+err1)
+                self.messages['debug'].appendleft('  Ping proxy got error: ' + err1)
                 self.messages['debug'].appendleft('  Check your proxy setting')
             elif not err1 and '100% packet loss' in res1:
                 self.messages['debug'][0] += '[dead]'
@@ -192,7 +193,7 @@ class Connection:
         i = 0
         while i < len(mirrors):
             try:
-                self.messages['debug'].appendleft(' using gate: '+mirrors[i])
+                self.messages['debug'].appendleft(' using gate: ' + mirrors[i])
                 gate = mirrors[i] + '/api/iphone/'
                 vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
 
@@ -217,8 +218,8 @@ class Connection:
         self.get_data()
         if self.country != 'all':
             self.vpndict = dict([vpn for vpn in self.vpndict.items()
-                                if re.search(r'\b%s\b' % self.country, vpn[1].country_long.lower() + ' '
-                                             + vpn[1].country_short.lower())])
+                                 if re.search(r'\b%s\b' % self.country, vpn[1].country_long.lower() + ' '
+                                              + vpn[1].country_short.lower())])
 
         if self.sort_by == 'speed':
             sort = sorted(self.vpndict.keys(), key=lambda x: self.vpndict[x].speed, reverse=True)
@@ -268,7 +269,7 @@ class Connection:
             self.vpn_cleanup()
 
         server = self.vpndict[self.sorted[chosen]]
-        self.messages['country'] += [server.country_long.strip('of')+' '+server.ip]
+        self.messages['country'] += [server.country_long.strip('of') + ' ' + server.ip]
         self.connected_servers.append(server.ip)
         vpn_file = server.write_file(self.use_proxy, self.proxy, self.port)
         vpn_file.close()
@@ -369,7 +370,7 @@ class Display:
         self.sets = self.setting()  # Pile of MyColumn
 
         # Body
-        self.Udata = []                 # used by make_GUI and update_GUI, just for ease of access
+        self.Udata = []  # used by make_GUI and update_GUI, just for ease of access
         self.table = self.make_GUI()  # list of lines, urwid.columns
 
         self.input = urwid.Edit(('command', u"Vpn command: "), edit_text=u'')
@@ -407,7 +408,7 @@ class Display:
 
         # check if user want to fetch new vpn server list
         if self.get_data_status == 'call' and not self.get_data.isAlive():
-            self.get_vpn_data()     # clear the template of server list
+            self.get_vpn_data()  # clear the template of server list
             self.get_data = Thread(target=self.ovpn.refresh_data)
             self.get_data.daemon = True
             self.get_data.start()
@@ -486,7 +487,8 @@ class Display:
                     elif 'off' in text[3:6]:
                         if yn == 'yes': self.setting('f10')
                     else:
-                        self.ovpn.messages['debug'].appendleft(' Logging is currently ' + ('on' if yn == 'yes' else 'off'))
+                        self.ovpn.messages['debug'].appendleft(
+                            ' Logging is currently ' + ('on' if yn == 'yes' else 'off'))
                         self.status(self.ovpn.messages)
                     self.input.set_edit_text('')
 
@@ -524,7 +526,7 @@ class Display:
             txt_labels.append(('fixed', spaces[i], tex))
         Ulabel = urwid.Columns(txt_labels)
 
-        Udata = []      # temporary, different from self.Udata
+        Udata = []  # temporary, different from self.Udata
         for i in range(self.ser_no):
             self.Udata.append(deepcopy(Ulabel))
             Udata.append(urwid.Padding(urwid.AttrMap(self.Udata[i], 'normal'), width=67))
@@ -538,11 +540,11 @@ class Display:
 
         # Page number
         total = str(len(data_list) // self.ser_no + 1)
-        page_no = str(self.index/self.ser_no + 1)
+        page_no = str(self.index / self.ser_no + 1)
         while page_no > total:
             self.index -= self.ser_no
-            page_no = str(self.index/self.ser_no + 1)
-        self.pages.set_text([('command', u'\u2191\u2193 page: '), page_no+'/'+total])
+            page_no = str(self.index / self.ser_no + 1)
+        self.pages.set_text([('command', u'\u2191\u2193 page: '), page_no + '/' + total])
 
         # data for that page
         tmp_ls = data_list[self.index:self.index + self.ser_no]
@@ -557,7 +559,7 @@ class Display:
 
             self.Udata[i].contents[0][0].set_text(tmp_index)
             for j, txt in enumerate(ser_info):
-                self.Udata[i].contents[j+1][0].set_text(txt)
+                self.Udata[i].contents[j + 1][0].set_text(txt)
 
             # colorize connected item
             self.table[i + 1].original_widget.set_attr_map({None: None})
@@ -570,9 +572,9 @@ class Display:
                     self.table[i + 1].original_widget.set_attr_map({None: 'failed'})
 
     def setting(self, key=None):
-        proxy= self.ovpn.proxy
+        proxy = self.ovpn.proxy
         port = self.ovpn.port
-        ip   = self.ovpn.ip
+        ip = self.ovpn.ip
         use_proxy = self.ovpn.use_proxy
 
         sort_by = self.ovpn.sort_by
@@ -677,10 +679,10 @@ class Display:
         if self.ovpn.verbose == 'no':
             return
 
-        logpath = self.ovpn.config_file[:-10]+'vpn.log'
+        logpath = self.ovpn.config_file[:-10] + 'vpn.log'
         if not msg:
             with open(logpath, 'w+') as log:
-                log.writelines(['-'*40+'\n', time.asctime()+': Vpngate with proxy is started\n'])
+                log.writelines(['-' * 40 + '\n', time.asctime() + ': Vpngate with proxy is started\n'])
 
         else:
             with open(logpath, 'a+') as log:
@@ -695,34 +697,33 @@ class Display:
                             ind -= 1
                             m = msg['debug'][ind]
                             self.vpn_log.appendleft(m)
-                            log.write(m+'\n')
+                            log.write(m + '\n')
                     else:
                         for m in list(msg['debug'])[::-1]:
                             self.vpn_log.appendleft(m)
-                            log.write(m+'\n')
+                            log.write(m + '\n')
 
     def run(self):
         self.loop.run()
 
-    def exit(self,loop, data=None):
+    def exit(self, loop, data=None):
         loop.set_alarm_in(sec=0.2, callback=self.exit)
         if not self.ovpn.vpn_process or self.ovpn.vpn_process.poll() is not None:
             raise urwid.ExitMainLoop()
         else:
             self.ovpn.kill = True
 
-
 # ------------------------- Main  -----------------------------------
 vpn_connect = Connection()  # initiate network parameter
 
 # ------------------- check_dependencies: ---------------------------
-required = {'openvpn': 0, 'requests': 0, 'urwid': 0}
+required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0}
 for module in ['pip', 'requests', 'urwid']:
     try:
         __import__(module, globals(), locals(), [], -1)
     except ImportError:
         if 'pip' in module:
-            module = 'python-'+module
+            module = 'python-' + module
         required[module] = 1
 
 if not os.path.exists('/usr/sbin/openvpn'):
@@ -731,25 +732,26 @@ if not os.path.exists('/usr/sbin/openvpn'):
 need = sorted([p for p in required if required[p]])
 if need:
     print ctext('\n**Lack of dependencies**', 'rB')
-
-    links = {'urwid': ('https://pypi.python.org/packages/source/u/urwid/urwid-1.3.0.tar.gz', 'urwid-1.3.0'),
-             'requests': ('https://pypi.python.org/packages/source/r/requests/requests-2.8.1.tar.gz', 'requests-2.8.1')}
-    sys.path.append('/usr/local/lib/python'+sys.version[:3]+'/dist-packages')
     env = dict(os.environ)
-
     if vpn_connect.use_proxy == 'yes':
         env['http_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
         env['https_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
 
+    update = 'no' if 'n' in raw_input(
+        ctext("Have you 'sudo apt-get update' recently? [yes(default))|no]", 'B')) else 'yes'
+
+    if update == 'yes':
+        call(['apt-get', 'update'], env=env)
+
+    sys.path.append('/usr/local/lib/python' + sys.version[:3] + '/dist-packages')
+
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
-        if package == 'openvpn':
+        if package in ['openvpn', 'python-pip']:
             call(['apt-get', 'install', package], env=env)
         else:
-            call(['wget', links[package][1]], env=env)
-            call(['cd', links[package][2]], env=env)
-            call(['python', 'setup.py', 'install'], env=env)
+            call(['pip', 'install', package], env=env)
 
     raw_input(ctext('  Done!\n  Press Enter to continue', 'g'))
 
