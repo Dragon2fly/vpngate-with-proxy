@@ -747,8 +747,8 @@ if need:
         if package == 'openvpn':
             call(['apt-get', 'install', package], env=env)
         else:
-            call(['wget', package[1]], env=env)
-            call(['cd', package[2]], env=env)
+            call(['wget', links[package][1]], env=env)
+            call(['cd', links[package][2]], env=env)
             call(['python', 'setup.py', 'install'], env=env)
 
     raw_input(ctext('  Done!\n  Press Enter to continue', 'g'))
