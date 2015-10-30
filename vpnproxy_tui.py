@@ -737,10 +737,10 @@ if need:
         env['http_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
         env['https_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
 
-    update = 'no' if 'n' in raw_input(
-        ctext("Have you 'sudo apt-get update' recently? [yes(default))|no]", 'B')) else 'yes'
+    update_now = 'yes' if 'n' in raw_input(
+        ctext("Have you 'sudo apt-get update' recently?", 'B') + "[ yes(default) | no]: ") else 'no'
 
-    if update == 'yes':
+    if update_now == 'yes':
         call(['apt-get', 'update'], env=env)
 
     sys.path.append('/usr/local/lib/python' + sys.version[:3] + '/dist-packages')
