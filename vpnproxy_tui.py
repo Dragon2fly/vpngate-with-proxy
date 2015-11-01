@@ -18,11 +18,13 @@ from subprocess import call, Popen, PIPE
 from threading import Thread
 from Queue import Queue, Empty
 from collections import deque, OrderedDict
+from vpn_indicator import *
 
 
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
+    # Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
     args = ['sudo', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
 
@@ -87,6 +89,7 @@ class Connection:
         self.vpndict = {}
         self.sorted = []
 
+        self.vpn_server = None
         self.vpn_process = None
         self.vpn_queue = None
         self.connect_status = False
@@ -269,6 +272,7 @@ class Connection:
             self.vpn_cleanup()
 
         server = self.vpndict[self.sorted[chosen]]
+        self.vpn_server = server
         self.messages['country'] += [server.country_long.strip('of') + ' ' + server.ip]
         self.connected_servers.append(server.ip)
         vpn_file = server.write_file(self.use_proxy, self.proxy, self.port)
@@ -392,6 +396,17 @@ class Display:
                                    pop_ups=True, handle_mouse=False)
         self.loop.set_alarm_in(sec=0.1, callback=self.periodic_checker)
 
+        # indicator
+        self.q2indicator = Queue()
+        self.qfindicator = Queue()
+
+        self.infoserver = InfoServer(8088)
+        self.indicator = Thread(target=self.infoserver.run, args=(self.q2indicator, self.qfindicator))
+        self.indicator.daemon = True
+        self.indicator.start()
+        self.sent = False
+        self.last_msg = ''
+
     def get_vpn_data(self):
         del self.data_ls[:]
 
@@ -400,8 +415,6 @@ class Display:
         self.update_GUI()
 
     def periodic_checker(self, loop, user_data=None):
-        loop.set_alarm_in(sec=0.1, callback=self.periodic_checker)
-
         # check if user want to kill vpn
         if self.ovpn.vpn_process:
             self.ovpn.vpn_checker()
@@ -421,7 +434,16 @@ class Display:
             self.input.set_edit_text(self.clear_input[1])
             self.clear_input = False
 
-        self.status(self.ovpn.messages)
+        if self.ovpn.connect_status != self.sent:
+            self.sent = self.ovpn.connect_status
+            self.communicator((self.sent, ''))
+
+        if self.cache_msg != self.ovpn.messages:
+            self.status(self.ovpn.messages)
+            self.cache_msg = deepcopy(self.ovpn.messages)
+            loop.set_alarm_in(sec=0.1, callback=self.periodic_checker)
+        else:
+            loop.set_alarm_in(sec=0.5, callback=self.periodic_checker)
 
     def signal_handler(self, signum, frame):
         self.ovpn.kill = True
@@ -655,7 +677,6 @@ class Display:
     def status(self, msg=None):
         self.logger(msg)
         if msg:
-            # self.printf(str(msg))
             ind = 0
             for mtype in msg:
                 for m in msg[mtype]:
@@ -674,6 +695,12 @@ class Display:
         message = [urwid.Text(u' ', align='center') for i in range(3)]
         debug_mes = [urwid.Text(u' ') for i in range(20)]
         return urwid.Pile(message + debug_mes)
+
+    def communicator(self, (msg, ovpn)):
+        if msg:
+            self.q2indicator.put('successfully')
+        else:
+            self.q2indicator.put('terminate')
 
     def logger(self, msg):
         if self.ovpn.verbose == 'no':
