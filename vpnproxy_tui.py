@@ -18,8 +18,9 @@ from subprocess import call, Popen, PIPE, check_output
 from threading import Thread
 from Queue import Queue, Empty
 from collections import deque, OrderedDict
-from vpn_indicator import *
 
+if 'Ubuntu' in platform.platform():
+    from vpn_indicator import *
 
 # Get sudo privilege
 euid = os.geteuid()
