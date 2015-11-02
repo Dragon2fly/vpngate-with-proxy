@@ -18,16 +18,12 @@ from subprocess import call, Popen, PIPE, check_output
 from threading import Thread
 from Queue import Queue, Empty
 from collections import deque, OrderedDict
-
-if 'Ubuntu' in platform.platform():
-    from vpn_indicator import *
+from vpn_indicator import *
 
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
-
-    import platform
-    if 'Ubuntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
+    if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
         print 'here'
         Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
 

@@ -4,13 +4,17 @@ import select
 
 __author__ = 'duc_tin'
 
-from gi.repository import Gtk, GLib
-from gi.repository import AppIndicator3 as appindicator
-from gi.repository import Notify as notify
+import platform
+if 'buntu' in platform.platform():
+    from gi.repository import Gtk, GLib
+    from gi.repository import AppIndicator3 as appindicator
+    from gi.repository import Notify as notify
 from Queue import Queue, Empty
 import signal, os
 import socket
 import time
+
+
 
 
 class InfoServer:
