@@ -4,15 +4,18 @@ import select
 
 __author__ = 'duc_tin'
 
-import platform
-if 'buntu' in platform.platform():
+from Queue import Queue, Empty
+import signal, os, sys
+import socket
+import time
+
+try:
     from gi.repository import Gtk, GLib
     from gi.repository import AppIndicator3 as appindicator
     from gi.repository import Notify as notify
-from Queue import Queue, Empty
-import signal, os
-import socket
-import time
+except ImportError:
+    print 'Lack of Gtk related modules!'
+    sys.exit()
 
 
 

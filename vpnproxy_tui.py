@@ -14,7 +14,7 @@ import time
 import datetime
 from copy import deepcopy
 from config import *
-from subprocess import call, Popen, PIPE, check_output
+from subprocess import call, Popen, PIPE
 from threading import Thread
 from Queue import Queue, Empty
 from collections import deque, OrderedDict
@@ -23,6 +23,7 @@ from vpn_indicator import *
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
+    import platform
     if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
         print 'here'
         Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
