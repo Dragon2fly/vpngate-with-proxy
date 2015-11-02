@@ -5,7 +5,7 @@ import select
 __author__ = 'duc_tin'
 
 from Queue import Queue, Empty
-import signal, os, sys
+import signal, os
 import socket
 import time
 
@@ -15,9 +15,7 @@ try:
     from gi.repository import Notify as notify
 except ImportError:
     print 'Lack of Gtk related modules!'
-    sys.exit()
-
-
+    print 'VPN indicator will not run!'
 
 
 class InfoServer:

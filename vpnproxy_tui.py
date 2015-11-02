@@ -25,7 +25,7 @@ euid = os.geteuid()
 if euid != 0:
     import platform
     if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
-        print 'here'
+        print 'Launch vpn_indicator'
         Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
 
     args = ['sudo', sys.executable] + sys.argv + [os.environ]
@@ -342,7 +342,7 @@ class Connection:
                 self.dns_manager('change')
                 self.messages['status'] += ['VPN tunnel established successfully', 'Ctrl+C to quit VPN']
                 self.connect_status = True
-            elif 'Restart pause, 5 second(s)' in line or 'Connection timed out' in line or 'SIGTERM[hard,]' in line:
+            elif 'Restart pause, 5 second(s)' in line or 'Connection timed out' in line or 'SIGTERM' in line:
                 self.messages['status'] += ['Vpn got error, terminated', ' ']
                 self.vpn_cleanup()
             elif 'ERROR' in line and 'add command failed' not in line or 'Exiting due' in line:
