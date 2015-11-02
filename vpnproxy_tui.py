@@ -14,7 +14,7 @@ import time
 import datetime
 from copy import deepcopy
 from config import *
-from subprocess import call, Popen, PIPE
+from subprocess import call, Popen, PIPE, check_output
 from threading import Thread
 from Queue import Queue, Empty
 from collections import deque, OrderedDict
@@ -24,7 +24,12 @@ from vpn_indicator import *
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
-    # Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
+
+    import platform
+    if 'Ubuntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
+        print 'here'
+        Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
+
     args = ['sudo', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
 
@@ -77,6 +82,14 @@ class Server:
         txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
+
+    def __repr__(self):
+        speed = self.speed / 1000. ** 2
+        uptime = datetime.timedelta(milliseconds=int(self.uptime))
+        uptime = re.split(',|\.', str(uptime))[0]
+        txt = [self.country_long, self.ip, str(self.ping), '%.2f' % speed, uptime, self.NumSessions,
+               self.logPolicy, str(self.score), self.proto]
+        return ';'.join(txt)
 
 
 class Connection:
@@ -698,7 +711,8 @@ class Display:
 
     def communicator(self, (msg, ovpn)):
         if msg:
-            self.q2indicator.put('successfully')
+            msgs = 'successfully;'+repr(self.ovpn.vpn_server)
+            self.q2indicator.put(msgs)
         else:
             self.q2indicator.put('terminate')
 
@@ -739,6 +753,7 @@ class Display:
             raise urwid.ExitMainLoop()
         else:
             self.ovpn.kill = True
+            time.sleep(1)
 
 # ------------------------- Main  -----------------------------------
 vpn_connect = Connection()  # initiate network parameter
