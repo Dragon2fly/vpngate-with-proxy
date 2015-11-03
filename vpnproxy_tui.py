@@ -26,7 +26,8 @@ if euid != 0:
     import platform
     if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
         print 'Launch vpn_indicator'
-        Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
+        with open('out.txt', 'w+') as f:
+            Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
 
     args = ['sudo', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
@@ -307,6 +308,12 @@ class Connection:
             p.wait()
         self.connect_status = False
         self.dns_manager('restore')
+
+        # make sure openvpn did close its device
+        tuntap = Popen(['ifconfig', '-s'], stdout=PIPE).communicate()[0]
+        devices = re.findall('tun\d+', tuntap)
+        for dev in devices:
+            call(('ip link delete '+dev).split())
 
     def kill_other(self):
         """
@@ -746,12 +753,11 @@ class Display:
         self.loop.run()
 
     def exit(self, loop, data=None):
-        loop.set_alarm_in(sec=0.2, callback=self.exit)
+        loop.set_alarm_in(sec=0.5, callback=self.exit)
         if not self.ovpn.vpn_process or self.ovpn.vpn_process.poll() is not None:
             raise urwid.ExitMainLoop()
         else:
             self.ovpn.kill = True
-            time.sleep(1)
 
 # ------------------------- Main  -----------------------------------
 vpn_connect = Connection()  # initiate network parameter

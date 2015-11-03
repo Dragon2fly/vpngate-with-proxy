@@ -39,7 +39,6 @@ class InfoServer:
 
         # wait forever for an incoming connection from indicator
         self.client, address = self.sock.accept()
-
         while True:
             try:
                 ready = select.select([self.client], [], [], 1)
@@ -57,6 +56,8 @@ class InfoServer:
                 time.sleep(1)
             except IOError, e:
                 print str(e)
+            except Exception, e:
+                print str(e)
 
     def stop(self):
         self.client.close()
@@ -69,27 +70,25 @@ class InfoClient:
         self.data_payload = 2048     # buffer
         self.sock = socket.socket()
         self.server_address = self.host, port
-        self.first_connect = True
+        self.state = False
 
     def connect(self):
         # print 'connect to %s:%s' % server_address
-        attempt = 1
-        while attempt:
-            try:
-                self.sock = socket.create_connection(self.server_address)
-                print 'connected'
-                return True
-                break
-            except socket.error, e:
-                print 'Socket error: ' + str(e)
-                time.sleep(5)
-                attempt -= 1
-        else:
-            return False
+        try:
+            self.sock = socket.create_connection(self.server_address)
+            print 'connected'
+            return True
+        except socket.error, e:
+            print str(e)
 
     def get_data(self):
         if not self.check_alive():
+            self.state = False
             return 'Offline'
+        elif not self.state:
+            self.state = True
+            return 'connected'
+
         data = ''
         try:
             ready = select.select([self.sock], [], [], 1)
@@ -103,10 +102,6 @@ class InfoClient:
         return data
 
     def check_alive(self):
-        if self.first_connect:
-            self.first_connect = False
-            return self.connect()
-
         try:
             self.sock.send('hello')
             return True
@@ -125,12 +120,12 @@ class VPNIndicator:
         signal.signal(signal.SIGTERM, self.handler)
         self.tcpClient = tcp_client
         self.APPINDICATOR_ID = 'myappindicator'
-        self.icon1 = os.path.abspath('drawing.svg')
-        self.icon2 = os.path.abspath('drawing_fail.svg')
+        self.icon1 = os.path.abspath('connected.svg')
+        self.icon2 = os.path.abspath('connectnot.svg')
         self.icon3 = os.path.abspath('connecting.gif')
+        self.hang = False
 
         self.last_recv = ''
-        self.trial = 4
         self.indicator = appindicator.Indicator.new(self.APPINDICATOR_ID, self.icon2,
                                                     appindicator.IndicatorCategory.APPLICATION_STATUS)
 
@@ -152,18 +147,20 @@ class VPNIndicator:
     def reload(self, data_in):
         if data_in:
             self.last_recv = data_in.split(';')
-            if 'successfully' in data_in:
+            if 'connected' in data_in:
+                self.hang = False
+                self.status('', self.last_recv)
+            elif 'successfully' in data_in:
                 self.indicator.set_icon(self.icon1)
                 self.status('', self.last_recv)
             elif 'terminate' in data_in:
                 self.indicator.set_icon(self.icon2)
                 self.status('', ['terminate'])
-            elif 'Offline' in data_in:
+            elif 'Offline' in data_in and not self.hang:
                 self.indicator.set_icon(self.icon2)
                 self.status('', ["Offline"])
-                self.trial -= 1
-            else:
-                self.trial = 3
+                self.hang = True
+
         return True
 
     def build_menu(self):
@@ -193,7 +190,10 @@ class VPNIndicator:
             messages = self.last_recv
         self.notifier.close()
 
-        if 'successfully' in messages[0]:
+        if 'connected' in messages[0]:
+            summary = 'Connected to main program'
+            body = ''
+        elif 'successfully' in messages[0]:
             summary = 'VPN tunnel established'
             body = '''
             %s \t             %s
@@ -210,7 +210,7 @@ class VPNIndicator:
             body = 'Please choose a different server and try again'
         elif 'Offline' in messages[0]:
             summary = 'VPN program is offline'
-            body = 'Stop indicator after %s time fail to reconnect' % self.trial
+            body = "Click VPN indicator and choose 'Quit' to quit"
 
         self.notifier.update(summary, body, icon=None)
         self.notifier.show()
@@ -225,14 +225,10 @@ class VPNIndicator:
             pass
 
     def callback(self):
-        if self.trial:
-            data = self.tcpClient.get_data()
-            self.reload(data)
-            return True
-        else:
-            self.handler('', '')
+        data = self.tcpClient.get_data()
+        self.reload(data)
+        return True
 
 if __name__ == '__main__':
     me = InfoClient(8088)
     indicator = VPNIndicator(me)
-
