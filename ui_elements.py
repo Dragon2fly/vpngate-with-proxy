@@ -171,13 +171,9 @@ class PopUpProxy(urwid.WidgetWrap):
                 self.input_addr.set_edit_text('Invalid Address!')
             if not 0 <= int(port) <= 65535:
                 self.input_port.set_edit_text('Invalid number!')
-            else:
-                self.chosen = self.yn, addr, port
-                self._emit("close")
-        else:
-            self.chosen = self.yn, addr, port
 
-            self._emit("close")
+        self.chosen = self.yn, addr, port
+        self._emit("close")
 
     def keypress(self, size, key):
         position = self.pile.focus_position
