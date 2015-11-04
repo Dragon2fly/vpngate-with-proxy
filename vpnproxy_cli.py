@@ -139,10 +139,8 @@ def refresh_data():
         vpnlist = dict([vpn for vpn in vpnlist.items()
                         if re.search(r'\b%s\b' % s_country, vpn[1].country_long.lower() + ' '
                                      + vpn[1].country_short.lower())])
-    print 'S1 ', len(vpnlist)
     if s_port != 'all':
         vpnlist = dict([vpn for vpn in vpnlist.items() if vpn[1].port == s_port])
-    print 'S2 ', len(vpnlist)
 
     if sort_by == 'speed':
         sort = sorted(vpnlist.keys(), key=lambda x: vpnlist[x].speed, reverse=True)
