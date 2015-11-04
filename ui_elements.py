@@ -175,6 +175,8 @@ class PopUpProxy(urwid.WidgetWrap):
                 self.chosen = self.yn, addr, port
                 self._emit("close")
         else:
+            self.chosen = self.yn, addr, port
+
             self._emit("close")
 
     def keypress(self, size, key):

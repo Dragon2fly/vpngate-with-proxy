@@ -39,11 +39,7 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 mirrors = ['http://www.vpngate.net',
            'http://103.253.112.16:49882',
            'http://158.ip-37-187-34.eu:58272',
-           'http://121.186.216.97:38438',
-           'http://hannan.postech.ac.kr:6395',
-           'http://115.160.46.181:38061',
-           'http://hornet.knu.ac.kr:36171',
-           'http://182-166-242-138f1.osk3.eonet.ne.jp:64298']
+           ]
 
 # TODO: add user manual to this and can be access by h, help. It may never be done, reads the README file instead
 
@@ -61,6 +57,7 @@ class Server:
         self.logPolicy = data[11]
         self.config_data = base64.b64decode(data[-1])
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
+        self.port = re.findall('remote .+ \d+', self.config_data)[0].split()[-1]
 
     def write_file(self, use_proxy='no', proxy=None, port=None):
         txt_data = self.config_data
@@ -74,11 +71,11 @@ class Server:
         return tmp_vpn
 
     def __str__(self):
-        spaces = [6, 7, 6, 10, 10, 10, 10, 8]
+        spaces = [6, 7, 6, 10, 10, 10, 10, 8, 8]
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
-        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto]
+        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto, self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
 
@@ -87,7 +84,7 @@ class Server:
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
         txt = [self.country_long, self.ip, str(self.ping), '%.2f' % speed, uptime, self.NumSessions,
-               self.logPolicy, str(self.score), self.proto]
+               self.logPolicy, str(self.score), self.proto, self.port]
         return ';'.join(txt)
 
 
@@ -557,8 +554,8 @@ class Display:
         self.debug.set_text(str(txt))
 
     def make_GUI(self):
-        labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol']
-        spaces = [5, 8, 6, 9, 10, 11, 9, 9]
+        labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol', 'Portal']
+        spaces = [5, 8, 6, 9, 10, 11, 9, 9, 9]
 
         txt_labels = []
         for i, txt in enumerate(labels):
@@ -569,7 +566,7 @@ class Display:
         Udata = []  # temporary, different from self.Udata
         for i in range(self.ser_no):
             self.Udata.append(deepcopy(Ulabel))
-            Udata.append(urwid.Padding(urwid.AttrMap(self.Udata[i], 'normal'), width=67))
+            Udata.append(urwid.Padding(urwid.AttrMap(self.Udata[i], 'normal'), width=90))
 
         Ulabel = urwid.AttrMap(Ulabel, 'command')
 
@@ -592,8 +589,8 @@ class Display:
             tmp_ls += [''] * (self.ser_no - len(tmp_ls))
 
         for i, line in enumerate(tmp_ls):
-            ser_info = line.split() if line.split() else [''] * 7
-            if len(ser_info) == 8:
+            ser_info = line.split() if line.split() else [''] * 8
+            if len(ser_info) == 9:
                 ser_info[3] += ' ' + ser_info.pop(4)
             tmp_index = str(self.index + i) if ser_info[0] else ''
 
@@ -648,9 +645,11 @@ class Display:
 
             if key == 'f2':
                 yn = self.sets.contents[index][0].result[0]
+                self.printf(yn)
                 proxy, port = self.sets.contents[index][0].result[1:]
 
                 use_proxy = self.ovpn.use_proxy = config_data[index] = yn
+                # self.printf(self.ovpn.use_proxy)
                 self.ovpn.proxy, self.ovpn.port = proxy, port
 
                 tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index]]

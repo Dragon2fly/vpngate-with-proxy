@@ -197,13 +197,12 @@ class VPNIndicator:
             summary = 'VPN tunnel established'
             body = '''
             %s \t             %s
-            Ping: \t\t\t%s
-            Speed: \t\t\t%s MB/s
+            Ping: \t\t\t%s            \tSpeed: \t\t%s MB/s
             Up time:\t\t%s
             Season: \t\t%s
             Log: \t\t\t%s
             Score: \t\t\t%s
-            Protocol: \t\t%s
+            Protocol: \t\t%s           \tPortal: \t%s
             ''' % tuple(messages[1:])
         elif 'terminate' in messages[0]:
             summary = 'VPN tunnel has broken'
