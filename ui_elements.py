@@ -109,30 +109,53 @@ class PopUpCountry(urwid.WidgetWrap):
 
     def __init__(self, key=None, value=''):
         self.trigger = key
-        info = urwid.Text("'ESC' to clear, leave blank for all country", 'center')
-        self.filter = urwid.Edit('Name: ', edit_text=value, wrap='clip')
-        filter_ = urwid.AttrMap(self.filter, None, 'popbgs')
+        info = urwid.Text("'ESC' to clear, leave blank or 'all' for all country and port", 'center')
+        self.country = urwid.Edit(('attention', u' \N{BULLET} Country: '), edit_text=value[0], wrap='clip')
+        self.port = urwid.IntEdit(('attention', u' \N{BULLET} Port   : '), default=value[1])
+        self.port.set_wrap_mode('clip')
+        exit_but = urwid.Padding(urwid.Button('OKay'.center(8), self.item_callback), 'center', 12)
+        filter_ = [urwid.AttrMap(wid, None, 'popbgs') for wid in (self.country, self.port, exit_but)]
 
-        self.pile = urwid.Pile([info, filter_])
+        self.pile = urwid.Pile([info]+filter_)
         fill = urwid.LineBox(urwid.Filler(self.pile))
         self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
 
-        self.chosen = self.filter.get_edit_text()
+        self.chosen = value
+
+    def item_callback(self, Button, data=None):
+        country = self.country.edit_text
+        port = self.port.edit_text
+        if not country:
+            self.country.set_edit_text('all')
+        if not port:
+            self.port.set_edit_text('all')
+            self._emit("close")
+        elif port != 'all' and not 0 <= int(port) <= 65535:
+            self.port.set_edit_text('Invalid number!')
+        else:
+            self.chosen = country, port
+            self._emit("close")
 
     def keypress(self, size, key):
-        if key in [self.trigger, 'esc']:
-            self.filter.set_edit_text(self.chosen)
+        position = self.pile.focus_position
+        if key == self.trigger:
+            self.country.set_edit_text(self.chosen[0])
+            self.port.set_edit_text(self.chosen[1])
             self._emit("close")
         elif key == 'esc':
-            self.filter.set_edit_text('')
+            if position == 1 and self.country.edit_text:
+                self.country.set_edit_text('')
+            elif position == 2 and self.port.edit_text:
+                self.port.set_edit_text('')
+            else:
+                self.country.set_edit_text(self.chosen[0])
+                self.port.set_edit_text(self.chosen[1])
+                self._emit("close")
 
-        elif key == 'enter':
-            self.chosen = self.filter.get_edit_text()
-            self.chosen = 'all' if not self.chosen else self.chosen
-            self.filter.keypress((size[0],), key)
-            self._emit("close")
+        elif key == 'enter' and 0 < position < len(self.pile.widget_list)-1:
+            self.pile.focus_position += 1
         else:
-            self.filter.keypress((size[0],), key)
+            self.pile.keypress((size[0],), key)
 
 
 class PopUpProxy(urwid.WidgetWrap):
@@ -142,9 +165,9 @@ class PopUpProxy(urwid.WidgetWrap):
     def __init__(self, key=None, value=('', '')):
         self.trigger = key
         self.yn = value[0]
-        self.yn_but = MyButton('Use proxy: ' + self.yn, self.on_change)
-        self.input_addr = urwid.Edit(u' \N{BULLET} Address  : ', edit_text=value[1], wrap='clip')
-        self.input_port = urwid.IntEdit(u' \N{BULLET} Port     : ', default=value[2])
+        self.yn_but = MyButton([('attention', 'Use proxy: '), self.yn], self.on_change)
+        self.input_addr = urwid.Edit(('attention', u' \N{BULLET} Address  : '), edit_text=value[1], wrap='clip')
+        self.input_port = urwid.IntEdit(('attention', u' \N{BULLET} Port     : '), default=value[2])
         self.input_port.set_wrap_mode('clip')
         exit_but = urwid.Padding(urwid.Button('OKay'.center(8), self.item_callback), 'center', 12)
 
@@ -159,7 +182,7 @@ class PopUpProxy(urwid.WidgetWrap):
 
     def on_change(self, Button, data=None):
         self.yn = 'no' if 'y' in self.yn else 'yes'
-        self.yn_but.update_label('Use proxy: ' + self.yn)
+        self.yn_but.update_label([('attention', 'Use proxy: '), self.yn])
 
     def item_callback(self, Button, data=None):
         port = self.input_port.edit_text
@@ -206,8 +229,8 @@ class PopUpDNS(urwid.WidgetWrap):
     def __init__(self, key=None, value=('', '')):
         self.trigger = key
         self.yn = value[0]
-        self.yn_but = MyButton('Fix it: ' + self.yn, self.on_change)
-        self.input_dns = urwid.Edit(u' \N{BULLET} DNS : ', edit_text=value[1], wrap='clip')
+        self.yn_but = MyButton([('attention', 'Fix it: '), self.yn], self.on_change)
+        self.input_dns = urwid.Edit(('attention', u' \N{BULLET} DNS   : '), edit_text=value[1], wrap='clip')
         exit_but = urwid.Padding(urwid.Button('OKay'.center(8), self.item_callback), 'center', 12)
 
         widgets = [self.yn_but] + [urwid.AttrMap(wid, None, 'popbgs') for wid in (self.input_dns, exit_but)]
@@ -220,7 +243,7 @@ class PopUpDNS(urwid.WidgetWrap):
 
     def on_change(self, Button, data=None):
         self.yn = 'no' if 'y' in self.yn else 'yes'
-        self.yn_but.update_label('Fix it: ' + self.yn)
+        self.yn_but.update_label([('attention', 'Fix it: '), self.yn])
 
     def item_callback(self, Button, data=None):
         self.chosen = self.yn, self.input_dns.edit_text

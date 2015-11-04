@@ -82,8 +82,9 @@ class Server:
     def __repr__(self):
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
-        uptime = re.split(',|\.', str(uptime))[0]
-        txt = [self.country_long, self.ip, str(self.ping), '%.2f' % speed, uptime, self.NumSessions,
+        # uptime = re.split(',|\.', str(uptime))[0]
+        uptime = str(uptime)[:-7]
+        txt = [self.country_long.strip('of'), self.ip, str(self.ping), '%.2f' % speed, uptime, self.NumSessions,
                self.logPolicy, str(self.score), self.proto, self.port]
         return ';'.join(txt)
 
@@ -96,6 +97,7 @@ class Connection:
         self.debug = []
 
         self.vpndict = {}
+        self.filters = {'Country': 'all', 'Port': 'all'}
         self.sorted = []
 
         self.vpn_server = None
@@ -123,10 +125,11 @@ class Connection:
         self.proxy, self.port, self.ip = self.configs[0:3]
         self.sort_by = self.configs[3]
         self.use_proxy = self.configs[4]
-        self.country = self.configs[5]
-        self.dns_fix = self.configs[6]
-        self.dns = self.configs[7]
-        self.verbose = self.configs[8]
+        self.filters['Country'] = self.configs[5]
+        self.filters['Port'] = self.configs[6]
+        self.dns_fix = self.configs[7]
+        self.dns = self.configs[8]
+        self.verbose = self.configs[9]
 
     def first_config(self):
         print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
@@ -167,7 +170,7 @@ class Connection:
         if not dns:
             dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
         verbose = 'no' if 'n' in raw_input(ctext('Write openvpn log?', 'B') + '[yes (default)| no]: ') else 'yes'
-        write_config(self.config_file, proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose)
+        write_config(self.config_file, proxy, port, ip, sort_by, use_proxy, country, 'all', dns_fix, dns, verbose)
         print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
     def get_data(self):
@@ -193,6 +196,7 @@ class Connection:
                                                   "ping packet or proxy itself is dead")
             else:
                 self.messages['debug'][0] += '[alive]'
+                self.ip = socket.gethostbyname(self.proxy)
 
             proxies = {
                 'http': 'http://' + self.proxy + ':' + self.port,
@@ -215,6 +219,7 @@ class Connection:
                 servers = [line.split(',') for line in vpn_data.split('\n')]
                 self.vpndict = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
                 self.messages['debug'].appendleft(' Fetching servers completed')
+                repr(self.vpndict.items()[1][1])
                 break
 
             except requests.exceptions.RequestException as e:
@@ -228,10 +233,14 @@ class Connection:
     def refresh_data(self):
         # fetch data from vpngate.net
         self.get_data()
-        if self.country != 'all':
+        if self.filters['Country'] != 'all':
+            name = self.filters['Country']
             self.vpndict = dict([vpn for vpn in self.vpndict.items()
-                                 if re.search(r'\b%s\b' % self.country, vpn[1].country_long.lower() + ' '
+                                 if re.search(r'\b%s\b' % name, vpn[1].country_long.lower() + ' '
                                               + vpn[1].country_short.lower())])
+        if self.filters['Port'] != 'all':
+            port = self.filters['Port']
+            self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port == port])
 
         if self.sort_by == 'speed':
             sort = sorted(self.vpndict.keys(), key=lambda x: self.vpndict[x].speed, reverse=True)
@@ -282,7 +291,7 @@ class Connection:
 
         server = self.vpndict[self.sorted[chosen]]
         self.vpn_server = server
-        self.messages['country'] += [server.country_long.strip('of') + ' ' + server.ip]
+        self.messages['country'] += [server.country_long.strip('of') + '  ' + server.ip]
         self.connected_servers.append(server.ip)
         vpn_file = server.write_file(self.use_proxy, self.proxy, self.port)
         vpn_file.close()
@@ -615,18 +624,19 @@ class Display:
         use_proxy = self.ovpn.use_proxy
 
         sort_by = self.ovpn.sort_by
-        country = self.ovpn.country
+        s_country = self.ovpn.filters['Country']
+        s_port = self.ovpn.filters['Port']
         fix_dns = self.ovpn.dns_fix
         dns = self.ovpn.dns
 
         verbose = self.ovpn.verbose
 
-        config_data = [use_proxy, fix_dns, country, sort_by]
-        labels = ['Proxy: ', 'DNS fix: ', 'Country: ', 'Sort by: ']
+        config_data = [use_proxy, fix_dns, s_country+' '+s_port, sort_by]
+        labels = ['Proxy: ', 'DNS fix: ', 'Filter: ', 'Sort by: ']
         buttons = ['F2', 'F3', 'F4', 'F5']
         popup = [PopUpProxy, PopUpDNS, PopUpCountry, PopUpSortBy]
-        param = [(use_proxy, proxy, port), (fix_dns, dns), country, sort_by]
-        pop_size = [(0, 1, 39, 6), (0, 1, 35, 5), (0, 1, 25, 5), (7, 1, 12, 6)]
+        param = [(use_proxy, proxy, port), (fix_dns, dns), (s_country, s_port), sort_by]
+        pop_size = [(0, 1, 39, 6), (0, 1, 35, 5), (0, 1, 35, 7), (7, 1, 12, 6)]
 
         if not key:
             txt_labels = []
@@ -645,11 +655,9 @@ class Display:
 
             if key == 'f2':
                 yn = self.sets.contents[index][0].result[0]
-                self.printf(yn)
                 proxy, port = self.sets.contents[index][0].result[1:]
 
                 use_proxy = self.ovpn.use_proxy = config_data[index] = yn
-                # self.printf(self.ovpn.use_proxy)
                 self.ovpn.proxy, self.ovpn.port = proxy, port
 
                 tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index]]
@@ -665,8 +673,9 @@ class Display:
                 self.sets[index].set_text(tex)
 
             elif key == 'f4':
-                country = self.ovpn.country = config_data[index] = self.sets.contents[index][0].result
-                tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index]]
+                s_country = self.ovpn.filters['Country'] = config_data[index] = self.sets.contents[index][0].result[0]
+                s_port = self.ovpn.filters['Port'] = self.sets.contents[index][0].result[1]
+                tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index][0:4]+' '+s_port]
                 self.sets[index].set_text(tex)
                 self.input.set_edit_text('refresh')
                 self.input.set_edit_pos(len('refresh'))
@@ -689,7 +698,7 @@ class Display:
                 pass
 
             config_path = self.ovpn.config_file
-            write_config(config_path, proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose)
+            write_config(config_path, proxy, port, ip, sort_by, use_proxy, s_country, s_port, fix_dns, dns, verbose)
 
     def status(self, msg=None):
         self.logger(msg)
@@ -725,7 +734,9 @@ class Display:
             return
 
         logpath = self.ovpn.config_file[:-10] + 'vpn.log'
-        if not msg:
+        if msg is None:
+            if os.path.exists(logpath):
+                call(['cp', '-f', logpath, logpath+'.old'])
             with open(logpath, 'w+') as log:
                 log.writelines(['-' * 40 + '\n', time.asctime() + ': Vpngate with proxy is started\n'])
 
@@ -802,7 +813,7 @@ import requests
 from ui_elements import *
 
 # -------- all dependencies should be available after this line --------
-
+raw_input('haha')
 screen = Display(vpn_connect)
 screen.get_data_status = 'call'
 screen.run()

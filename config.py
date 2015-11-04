@@ -120,14 +120,15 @@ def read_config(config_path):
     port = parser.get('proxy', 'port')
     ip = parser.get('proxy', 'ip')
     sort_by = parser.get('sort', 'key')
-    country = parser.get('country_filter', 'country')
+    s_country = parser.get('country_filter', 'country')
+    s_port = parser.get('country_filter', 'port')
     fix_dns = parser.get('DNS_leak', 'fix_dns')
     dns = parser.get('DNS_leak', 'dns')
     verbose = parser.get('openvpn', 'verbose')
-    return proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose
+    return proxy, port, ip, sort_by, use_proxy, s_country, s_port, fix_dns, dns, verbose
 
 
-def write_config(config_path, proxy, port, ip, parameter, use_proxy, country, fix_dns, dns, verbose='no'):
+def write_config(config_path, proxy, port, ip, parameter, use_proxy, s_country, s_port, fix_dns, dns, verbose='no'):
     parser = ConfigParser.SafeConfigParser()
     parser.add_section('proxy')
     parser.set('proxy', 'use proxy', use_proxy)
@@ -139,7 +140,8 @@ def write_config(config_path, proxy, port, ip, parameter, use_proxy, country, fi
     parser.set('sort', 'key', parameter)
 
     parser.add_section('country_filter')
-    parser.set('country_filter', 'country', country)
+    parser.set('country_filter', 'country', s_country)
+    parser.set('country_filter', 'port', s_port)
 
     parser.add_section('DNS_leak')
     parser.set('DNS_leak', 'fix_dns', fix_dns)

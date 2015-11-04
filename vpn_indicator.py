@@ -24,13 +24,18 @@ class InfoServer:
         self.data_payload = 2048     # buffer
         self.backlog = 1
         self.client = None
+        self.state = False
 
         self.port = port
         self.sock = socket.socket()
-        # self.sock.setblocking(0)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_address = self.host, self.port
         self.last_msg = ''
+
+    def wait_client(self):
+        self.client, address = self.sock.accept()
+        self.client.send('Hi')
+        self.client.sendall(self.last_msg)
 
     def run(self, q_in, q_out):
         # print 'starting server at %s:%s' % server_address
@@ -38,7 +43,8 @@ class InfoServer:
         self.sock.listen(self.backlog)
 
         # wait forever for an incoming connection from indicator
-        self.client, address = self.sock.accept()
+        self.client, address = self.sock.accept()   # this line is not really necessary but just leave it there
+
         while True:
             try:
                 ready = select.select([self.client], [], [], 1)
@@ -46,16 +52,15 @@ class InfoServer:
                     data = self.client.recv(self.data_payload)
                     if 'close' in data:
                         self.client.close()
-                        self.client, address = self.sock.accept()
-                        self.client.sendall(self.last_msg)
+                        self.wait_client()
 
                 info = q_in.get_nowait()
                 self.client.sendall(info)
                 self.last_msg = info
             except Empty:
                 time.sleep(1)
-            except IOError, e:
-                print str(e)
+            except socket.errno, e:
+                self.wait_client()
             except Exception, e:
                 print str(e)
 
@@ -76,7 +81,7 @@ class InfoClient:
         # print 'connect to %s:%s' % server_address
         try:
             self.sock = socket.create_connection(self.server_address)
-            print 'connected'
+            print 'socket: connected'
             return True
         except socket.error, e:
             print str(e)
@@ -146,6 +151,9 @@ class VPNIndicator:
 
     def reload(self, data_in):
         if data_in:
+            if len(data_in) < 25:
+                print data_in
+
             self.last_recv = data_in.split(';')
             if 'connected' in data_in:
                 self.hang = False
@@ -197,9 +205,8 @@ class VPNIndicator:
             summary = 'VPN tunnel established'
             body = '''
             %s \t             %s
-            Ping: \t\t\t%s            \tSpeed: \t\t%s MB/s
-            Up time:\t\t%s
-            Season: \t\t%s
+            Ping: \t\t\t%s             \tSpeed : \t%s MB/s
+            Up time:\t\t%s             \tSeason: \t%s
             Log: \t\t\t%s
             Score: \t\t\t%s
             Protocol: \t\t%s           \tPortal: \t%s
