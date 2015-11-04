@@ -56,6 +56,11 @@ class Server():
         self.logPolicy = data[11]
         self.config_data = base64.b64decode(data[-1])
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
+        try:
+            self.port = re.findall('remote .+ \d+', self.config_data)[0].split()[-1]
+        except IndexError:
+            print len(self.config_data)
+            print re.findall('remote .+ \d+', self.config_data)
 
     def write_file(self):
         txt_data = self.config_data
@@ -63,9 +68,6 @@ class Server():
             txt_data = txt_data.replace('\r\n;http-proxy-retry\r\n', '\r\nhttp-proxy-retry 3\r\n')
             txt_data = txt_data.replace('\r\n;http-proxy [proxy server] [proxy port]\r\n',
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
-
-        # if dns_fix == 'yes':
-        #     txt_data += Server.dns_leak_stop
 
         tmp_vpn = open('vpn_tmp', 'w+')
         tmp_vpn.write(txt_data)
@@ -75,7 +77,7 @@ class Server():
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
-        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto]
+        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto, self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
 
@@ -132,10 +134,15 @@ def get_data():
 def refresh_data():
     # fetch data from vpngate.net
     vpnlist = get_data()
-    if country != 'all':
+
+    if s_country != 'all':
         vpnlist = dict([vpn for vpn in vpnlist.items()
-                        if re.search(r'\b%s\b' % country, vpn[1].country_long.lower() + ' '
+                        if re.search(r'\b%s\b' % s_country, vpn[1].country_long.lower() + ' '
                                      + vpn[1].country_short.lower())])
+    print 'S1 ', len(vpnlist)
+    if s_port != 'all':
+        vpnlist = dict([vpn for vpn in vpnlist.items() if vpn[1].port == s_port])
+    print 'S2 ', len(vpnlist)
 
     if sort_by == 'speed':
         sort = sorted(vpnlist.keys(), key=lambda x: vpnlist[x].speed, reverse=True)
@@ -222,7 +229,7 @@ if os.path.exists(config_file):
         else:
             get_input(config_file, args)
 
-    proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
+    proxy, port, ip, sort_by, use_proxy, s_country, s_port, dns_fix, dns, verbose = read_config(config_file)
 
 else:
     print '\n' + '_'*12 + ctext(' First time config ', 'gB') + '_'*12 + '\n'
@@ -251,9 +258,9 @@ else:
     if sort_by not in ['speed', 'ping', 'score', 'up time']:
         sort_by = 'speed'
 
-    country = raw_input(ctext('\nFilter server by country ','B') + '[eg: all (default), jp, japan]: ')
-    if not country:
-        country = 'all'
+    s_country = raw_input(ctext('\nFilter server by country ','B') + '[eg: all (default), jp, japan]: ')
+    if not s_country:
+        s_country = 'all'
 
     dns_fix = 'yes' if raw_input(ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
     dns = ''
@@ -262,7 +269,7 @@ else:
     if not dns:
         dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
     verbose = 'no' if 'n' in raw_input(ctext('Write openvpn log? [yes (default)| no]: ', 'B')) else 'yes'
-    write_config(config_file, proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose)
+    write_config(self.config_file, proxy, port, ip, sort_by, use_proxy, s_country, 'all', dns_fix, dns, verbose)
     print '\n' + '_'*12 + ctext(' Config done', 'gB') + '_'*12 + '\n'
 
 # ------------------- check_dependencies: ----------------------
@@ -298,17 +305,17 @@ if need:
 dns_manager()
 ranked, vpn_list = refresh_data()
 
-labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol']
-spaces = [6, 7, 6, 10, 10, 10, 10, 8]
+labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol', 'Portal']
+spaces = [6, 7, 6, 10, 10, 10, 10, 8, 8]
 labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
 connected_servers = []
 
 while True:
     print ctext('Use proxy: ', 'B'), use_proxy,
-    print ' || ', ctext('Country: ', 'B'), country
+    print ' || ', ctext('Country: ', 'B'), s_country
 
     if not ranked:
-        print '\nNo server found for "%s"\n' % country
+        print '\nNo server found for "%s"\n' % s_country
     else:
         print ctext(''.join(labels), 'gB')
         for index, key in enumerate(ranked[:20]):
@@ -329,7 +336,7 @@ while True:
             ranked, vpn_list = refresh_data()
         elif user_input.strip().lower() in 'config':
             get_input(config_file, [user_input])
-            proxy, port, ip, sort_by, use_proxy, country, dns_fix, dns, verbose = read_config(config_file)
+            proxy, port, ip, sort_by, use_proxy, s_country, s_port, dns_fix, dns, verbose = read_config(config_file)
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)

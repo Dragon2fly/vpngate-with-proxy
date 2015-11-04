@@ -37,22 +37,22 @@ def ctext(text, color):
 
 def get_input(config_path, option):
     if option[0] in ['c', 'config']:
-        proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose = read_config(config_path)
+        proxy, port, ip, sort_by, use_proxy, s_country, s_port, fix_dns, dns, verbose = read_config(config_path)
 
         while 1:
             print ctext('\n Current settings:', 'B')
             print ctext('   1. Proxy address:', 'yB'), proxy, ctext('\t2. port: ', 'yB'), port
             print ctext('   3. Use proxy:', 'yB'), use_proxy
             print ctext('   4. Sort servers by:', 'yB'), sort_by
-            print ctext('   5. Country filter:', 'yB'), country
-            print ctext('   6. Fix dns leaking:', 'yB'), fix_dns
-            print ctext('   7. DNS list: ', 'yB'), dns
-            print ctext('   8. Show openvpn log:', 'B'), verbose
+            print ctext('   5. Country filter:', 'yB'), s_country, ctext('\t\t6. VPN server\'s port: ', 'yB'), s_port
+            print ctext('   7. Fix dns leaking:', 'yB'), fix_dns
+            print ctext('   8. DNS list: ', 'yB'), dns
+            print ctext('   9. Show openvpn log:', 'B'), verbose
 
             user_input = raw_input('\nCommand or Enter to fetch server list: ')
             if user_input == '':
                 print 'Process to vpn server list'
-                write_config(config_path, proxy, port, ip, sort_by, use_proxy, country, fix_dns, dns, verbose)
+                write_config(config_path, proxy, port, ip, sort_by, use_proxy, s_country, s_port, fix_dns, dns, verbose)
                 return
             elif user_input == '1':
                 proxy = raw_input('Your http_proxy:')
@@ -78,15 +78,22 @@ def get_input(config_path, option):
                 while not re.match('^[a-z ]*$', user_input.lower().strip()):
                     user_input = raw_input('Country\'s name (eg: all(default), jp, japan):')
                 else:
-                    country = 'all' if not user_input else user_input.lower()
+                    s_country = 'all' if not user_input else user_input.lower()
 
             elif user_input == '6':
+                user_input = 'abc'
+                while not user_input.strip().isdigit():
+                    user_input = raw_input('VPN server\'s port (eg: 995): ')
+                    if not user_input or 'all' == user_input: break
+                s_port = user_input if user_input else 'all'
+
+            elif user_input == '7':
                 while user_input.lower() not in ['y', 'n', 'yes', 'no']:
                     user_input = raw_input('Fix DNS:')
                 else:
                     fix_dns = 'no' if user_input in 'no' else 'yes'
 
-            elif user_input == '7':
+            elif user_input == '8':
                 print 'Default DNS are 8.8.8.8, 84.200.69.80, 208.67.222.222'
                 user_input='@'
                 while not re.match('[a-zA-Z0-9., ]*$', user_input.strip()):
@@ -96,7 +103,7 @@ def get_input(config_path, option):
                 else:
                     dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
 
-            elif user_input == '8':
+            elif user_input == '9':
                 while user_input.lower() not in ['y', 'n', 'yes', 'no']:
                     user_input = raw_input('Use proxy to connect to vpn? (yes|no): ')
                 else:
