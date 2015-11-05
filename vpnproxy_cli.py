@@ -56,11 +56,11 @@ class Server():
         self.logPolicy = data[11]
         self.config_data = base64.b64decode(data[-1])
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
-        try:
-            self.port = re.findall('remote .+ \d+', self.config_data)[0].split()[-1]
-        except IndexError:
-            print len(self.config_data)
-            print re.findall('remote .+ \d+', self.config_data)
+        port = re.findall('remote .+ \d+', self.config_data)
+        if not port:
+            self.port = 0
+        else:
+            self.port = port[0].split()[-1]
 
     def write_file(self):
         txt_data = self.config_data

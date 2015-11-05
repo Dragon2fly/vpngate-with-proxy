@@ -6,7 +6,7 @@ __author__ = 'duc_tin'
 
 from Queue import Queue, Empty
 import signal, os
-import socket
+import socket, errno
 import time
 
 try:
@@ -61,8 +61,11 @@ class InfoServer:
                 time.sleep(1)
             except socket.errno, e:
                 self.wait_client()
-            except Exception, e:
-                print str(e)
+            except IOError as e:
+                if e.errno == errno.EPIPE:
+                    self.wait_client()
+            except Exception as e:
+                print 'unkown', str(e)
 
     def stop(self):
         self.client.close()

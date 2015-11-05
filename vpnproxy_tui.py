@@ -57,7 +57,12 @@ class Server:
         self.logPolicy = data[11]
         self.config_data = base64.b64decode(data[-1])
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
-        self.port = re.findall('remote .+ \d+', self.config_data)[0].split()[-1]
+        port = re.findall('remote .+ \d+', self.config_data)
+        if not port:
+            self.port = 0
+        else:
+            self.port = port[0].split()[-1]
+
 
     def write_file(self, use_proxy='no', proxy=None, port=None):
         txt_data = self.config_data
@@ -240,7 +245,7 @@ class Connection:
                                               + vpn[1].country_short.lower())])
         if self.filters['Port'] != 'all':
             port = self.filters['Port']
-            self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port == port])
+            self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port in port])
 
         if self.sort_by == 'speed':
             sort = sorted(self.vpndict.keys(), key=lambda x: self.vpndict[x].speed, reverse=True)
