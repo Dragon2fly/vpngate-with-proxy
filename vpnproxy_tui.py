@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.1"
+__version__ = "1.20"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -59,10 +59,9 @@ class Server:
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
         port = re.findall('remote .+ \d+', self.config_data)
         if not port:
-            self.port = 0
+            self.port = '0'
         else:
             self.port = port[0].split()[-1]
-
 
     def write_file(self, use_proxy='no', proxy=None, port=None):
         txt_data = self.config_data
