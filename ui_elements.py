@@ -127,8 +127,10 @@ class PopUpCountry(urwid.WidgetWrap):
         port = self.port.edit_text
         if not country:
             self.country.set_edit_text('all')
+            country = 'all'
         if not port:
             self.port.set_edit_text('all')
+            port = 'all'
             self._emit("close")
         elif port != 'all' and not 0 <= int(port) <= 65535:
             self.port.set_edit_text('Invalid number!')

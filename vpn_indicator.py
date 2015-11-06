@@ -208,7 +208,7 @@ class VPNIndicator:
             summary = 'VPN tunnel established'
             body = '''
             %s \t             %s
-            Ping: \t\t\t%s             \tSpeed : \t%s MB/s
+            Ping: \t\t\t%s             \tSpeed : \t%s Mbps
             Up time:\t\t%s             \tSeason: \t%s
             Log: \t\t\t%s
             Score: \t\t\t%s

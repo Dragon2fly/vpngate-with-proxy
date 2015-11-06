@@ -38,8 +38,9 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 # Define some mirrors of vpngate.net
 mirrors = ['http://www.vpngate.net',
            'http://103.253.112.16:49882',
-           'http://158.ip-37-187-34.eu:58272',
-           ]
+           'http://hannan.postech.ac.kr:6395',
+           'http://115.160.46.181:38061',
+           'http://hornet.knu.ac.kr:36171']
 
 # TODO: add user manual to this and can be access by h, help. It may never be done, reads the README file instead
 
@@ -210,29 +211,35 @@ class Connection:
         else:
             proxies = {}
 
+        self.vpndict.clear()
         i = 0
+        success = 0
         while i < len(mirrors):
             try:
                 self.messages['debug'].appendleft(' using gate: ' + mirrors[i])
                 gate = mirrors[i] + '/api/iphone/'
-                vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
+                vpn_data = requests.get(gate, proxies=proxies, timeout=2).text.replace('\r', '')
 
                 if 'vpn_servers' not in vpn_data:
-                    raise requests.exceptions.RequestException
+                    self.messages['debug'].appendleft(' Gate ' + mirrors[i] + ' does not have expected data!')
+                else:
+                    servers = [line.split(',') for line in vpn_data.split('\n')]
+                    self.vpndict.update({s[0]: Server(s) for s in servers[2:] if len(s) > 1})
+                    self.messages['debug'].appendleft(' Fetching servers completed')
+                    success += 1
 
-                servers = [line.split(',') for line in vpn_data.split('\n')]
-                self.vpndict = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
-                self.messages['debug'].appendleft(' Fetching servers completed')
-                repr(self.vpndict.items()[1][1])
-                break
+                if success == 1: break
+                i += 1
 
             except requests.exceptions.RequestException as e:
                 self.messages['debug'].appendleft(str(e))
                 self.messages['debug'].appendleft(' Connection to gate ' + mirrors[i] + ' failed')
                 i += 1
         else:
-            self.messages['debug'].appendleft(' Failed to get VPN servers data\n Check your network setting and proxy')
-            sys.exit(1)
+            if not success:
+                self.messages['debug'].appendleft(' Failed to get VPN servers data\n '
+                                                  'Check your network setting and proxy')
+                sys.exit(1)
 
     def refresh_data(self):
         # fetch data from vpngate.net
@@ -591,7 +598,7 @@ class Display:
         # Page number
         total = str(len(data_list) // self.ser_no + 1)
         page_no = str(self.index / self.ser_no + 1)
-        while page_no > total:
+        while int(page_no) > int(total):
             self.index -= self.ser_no
             page_no = str(self.index / self.ser_no + 1)
         self.pages.set_text([('command', u'\u2191\u2193 page: '), page_no + '/' + total])
