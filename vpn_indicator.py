@@ -154,8 +154,7 @@ class VPNIndicator:
 
     def reload(self, data_in):
         if data_in:
-            if len(data_in) < 25:
-                print data_in
+            print data_in[:12]
 
             self.last_recv = data_in.split(';')
             if 'connected' in data_in:

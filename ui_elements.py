@@ -3,11 +3,12 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.1"
+__version__ = "1.25"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
 import urwid
+import re
 
 # -----------------------------------------------here we go-------------------------------------------------------------
 
@@ -111,8 +112,7 @@ class PopUpCountry(urwid.WidgetWrap):
         self.trigger = key
         info = urwid.Text("'ESC' to clear, leave blank or 'all' for all country and port", 'center')
         self.country = urwid.Edit(('attention', u' \N{BULLET} Country: '), edit_text=value[0], wrap='clip')
-        self.port = urwid.IntEdit(('attention', u' \N{BULLET} Port   : '), default=value[1])
-        self.port.set_wrap_mode('clip')
+        self.port = urwid.Edit(('attention', u' \N{BULLET} Port   : '), edit_text=value[1], wrap='clip')
         exit_but = urwid.Padding(urwid.Button('OKay'.center(8), self.item_callback), 'center', 12)
         filter_ = [urwid.AttrMap(wid, None, 'popbgs') for wid in (self.country, self.port, exit_but)]
 
@@ -132,11 +132,19 @@ class PopUpCountry(urwid.WidgetWrap):
             self.port.set_edit_text('all')
             port = 'all'
             self._emit("close")
-        elif port != 'all' and not 0 <= int(port) <= 65535:
+
+        elif port != 'all' and not set(port) <= set(' 0123456789'):
             self.port.set_edit_text('Invalid number!')
+            return
         else:
-            self.chosen = country, port
-            self._emit("close")
+            for p in re.findall(r'\d+', port):
+                if p == 'Invalid number!': return
+                if p != 'all' and not 0 <= int(p) <= 65535:
+                    self.port.set_edit_text('Invalid number!')
+                    return
+
+        self.chosen = country, port
+        self._emit("close")
 
     def keypress(self, size, key):
         position = self.pile.focus_position
@@ -190,10 +198,15 @@ class PopUpProxy(urwid.WidgetWrap):
         port = self.input_port.edit_text
         addr = self.input_addr.edit_text.replace('http://', '')
         if self.yn == 'yes':
+            if not addr:
+                addr = 'Invalid Address!'
+                self.input_addr.set_edit_text('Invalid Address!')
+            if not port:
+                port = 'Invalid number!'
+                self.input_port.set_edit_text('Invalid number!')
             if 'Invalid' in addr + port:
                 return
-            if not addr or not port:
-                self.input_addr.set_edit_text('Invalid Address!')
+
             if not 0 <= int(port) <= 65535:
                 self.input_port.set_edit_text('Invalid number!')
             else:

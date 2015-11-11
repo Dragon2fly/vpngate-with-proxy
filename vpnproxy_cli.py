@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.20"
+__version__ = "1.25"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -58,7 +58,7 @@ class Server():
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
         port = re.findall('remote .+ \d+', self.config_data)
         if not port:
-            self.port = '0'
+            self.port = '1'
         else:
             self.port = port[0].split()[-1]
 
@@ -77,7 +77,8 @@ class Server():
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
-        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto, self.port]
+        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
+               self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
 
@@ -99,7 +100,8 @@ def get_data():
             print ' Check your proxy setting'
         if not err1 and '100% packet loss' in res1:
             print ctext('Warning:', 'yB') + ctext('Proxy not response to ping', 'y')
-            print ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead", 'y')
+            print ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead",
+                        'y')
 
         proxies = {
             'http': 'http://' + proxy + ':' + port,
@@ -211,29 +213,29 @@ def vpn_manager(ovpn):
     finally:
         dns_manager('restore')
 
-
 # ---------------------------- Main  --------------------------------
 # get config file path
 path = os.path.realpath(sys.argv[0])
 config_file = os.path.split(path)[0] + '/config.ini'
+cfg = Setting(config_file)
 args = sys.argv[1:]
 
 # get proxy from config file
 if os.path.exists(config_file):
+    cfg.load()
     if len(args):
         # process commandline arguments
         if args[0] in ['r', 'restore']:
             dns_manager('restore')
         else:
-            get_input(config_file, args)
-
-    proxy, port, ip, sort_by, use_proxy, s_country, s_port, dns_fix, dns, verbose = read_config(config_file)
+            get_input(cfg, args)
 
 else:
-    print '\n' + '_'*12 + ctext(' First time config ', 'gB') + '_'*12 + '\n'
+    print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
     print "If you don't know what to do, just press Enter to use default option\n"
-    use_proxy = 'no' if raw_input(ctext('Do you need proxy to connect? ', 'B')+'[yes|no(default)]:') in 'no' else 'yes'
-    if use_proxy == 'yes':
+    cfg.proxy['use_proxy'] = 'no' if raw_input(
+        ctext('Do you need proxy to connect? ', 'B') + '[yes|no(default)]:') in 'no' else 'yes'
+    if cfg.proxy['use_proxy'] == 'yes':
         print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
         while 1:
             try:
@@ -243,34 +245,44 @@ else:
                 if not 0 <= int(port) <= 65535:
                     raise ValueError
             except ValueError:
-                print ctext(' Error: Http proxy must in format ', 'r')+ctext('address:port', 'B')
+                print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
                 print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
                 print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
             else:
+                cfg.proxy['address'] = proxy
+                cfg.proxy['port'] = port
+                cfg.proxy['ip'] = ip
                 break
 
-    else:
-        proxy, port, ip = '', '', ''
+    cfg.sort['key'] = raw_input(ctext('\nSort servers by ', 'B') + '[speed (default) | ping | score | up time]: ')
+    if cfg.sort['key'] not in ['speed', 'ping', 'score', 'up time']:
+        cfg.sort['key'] = 'speed'
 
-    sort_by = raw_input(ctext('\nSort servers by ', 'B') + '[speed (default) | ping | score | up time]: ')
-    if sort_by not in ['speed', 'ping', 'score', 'up time']:
-        sort_by = 'speed'
+    cfg.filter['country'] = raw_input(
+        ctext('\nFilter server by country ', 'B') + '[eg: all (default), jp, japan]: ')
+    if not cfg.filter['country']:
+        cfg.filter['country'] = 'all'
 
-    s_country = raw_input(ctext('\nFilter server by country ','B') + '[eg: all (default), jp, japan]: ')
-    if not s_country:
-        s_country = 'all'
+    cfg.dns['fix_dns'] = 'yes' if raw_input(
+        ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
+    if cfg.dns['fix_dns'] == 'yes':
+        cfg.dns['dns'] = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
+    if not cfg.dns['dns']:
+        cfg.dns['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
 
-    dns_fix = 'yes' if raw_input(ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
-    dns = ''
-    if dns_fix == 'yes':
-        dns = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
-    if not dns:
-        dns = '8.8.8.8, 84.200.69.80, 208.67.222.222'
-    verbose = 'no' if 'n' in raw_input(ctext('Write openvpn log? [yes (default)| no]: ', 'B')) else 'yes'
-    write_config(self.config_file, proxy, port, ip, sort_by, use_proxy, s_country, 'all', dns_fix, dns, verbose)
-    print '\n' + '_'*12 + ctext(' Config done', 'gB') + '_'*12 + '\n'
+    cfg.openvpn['verbose'] = 'no' if 'n' in raw_input(
+        ctext('Write openvpn log? [yes (default)| no]: ', 'B')) else 'yes'
+
+    cfg.write()
+    print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
 # ------------------- check_dependencies: ----------------------
+use_proxy, proxy, port, ip = cfg.proxy.values()
+sort_by = cfg.sort.values()[0]
+s_country, s_port = cfg.filter.values()
+dns_fix, dns = cfg.dns.values()
+verbose = cfg.openvpn.values()[0]
+
 required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
 
 try:
@@ -330,11 +342,17 @@ while True:
         if user_input.strip().lower() in ['q', 'quit', 'exit']:
             print ctext('Goodbye'.center(40), 'gB')
             sys.exit()
-        elif user_input.strip().lower() in 'refresh':
+        elif user_input.strip().lower() in ('r', 'refresh'):
             ranked, vpn_list = refresh_data()
-        elif user_input.strip().lower() in 'config':
-            get_input(config_file, [user_input])
-            proxy, port, ip, sort_by, use_proxy, s_country, s_port, dns_fix, dns, verbose = read_config(config_file)
+        elif user_input.strip().lower() in ('c', 'config'):
+            get_input(cfg, [user_input])
+
+            use_proxy, proxy, port, ip = cfg.proxy.values()
+            sort_by = cfg.sort.values()[0]
+            s_country, s_port = cfg.filter.values()
+            dns_fix, dns = cfg.dns.values()
+            verbose = cfg.openvpn.values()[0]
+
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
