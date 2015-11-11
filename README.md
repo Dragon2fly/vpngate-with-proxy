@@ -4,7 +4,10 @@ by using python script. Auto add DNS to fix DNS leak. You can use this program w
 
 Work on debian based system. Tested on Ubuntu and Raspbian.
 
-I will wrap SSL_vpn later when I have time, or you're welcomed to fork this and do it yourself.
+I will wrap SSL_vpn later when I have time but you're welcomed to fork this repo and do that.
+
+**Indicator**: Tested on Ubuntu and is only enabled by default on Ubuntu. For other distro,
+you can test it by *$ ./vpn_indicator* after launching *vpnproxy_tui*
 
 ![](http://s19.postimg.org/580s2qyo3/2connect_success.png)
 
@@ -13,7 +16,7 @@ I will wrap SSL_vpn later when I have time, or you're welcomed to fork this and 
 * **resolvconf**: ```$ sudo apt-get install resolvconf```   Only if you use the version in 'old' directory
 * **python 2.7.x**: should already be shipped with your linux
 * **python-requests**: ```$ sudo apt-get install python-requests```
-* **python-urwid**: ```$ sudo apt-get install python-urwid```Only if you use `tui` version (terminal user interface)
+* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid```Only if you use `tui` version (terminal user interface)
 
 Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
 
