@@ -4,7 +4,7 @@ by using python script. Auto add DNS to fix DNS leak. You can use this program w
 
 Work on debian based system. Tested on Ubuntu and Raspbian.
 
-I will wrap SSL_vpn later when I have time but you're welcomed to fork this repo and do that.
+I will wrap SSL_vpn later when I have time. You're also welcomed to fork this repo and do that.
 
 **Indicator**: Tested on Ubuntu and is only enabled by default on Ubuntu. For other distro,
 you can test it by *$ ./vpn_indicator* after launching *vpnproxy_tui*
