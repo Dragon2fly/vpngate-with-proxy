@@ -7,7 +7,7 @@ Work on debian based system. Tested on Ubuntu and Raspbian.
 I will wrap SoftEthe_vpn later when I have time. You're also welcomed to fork this repo and wrap SoftEthe_vpn yourself.
 
 **Indicator**: Tested on Ubuntu and is only enabled by default on Ubuntu. For other distro,
-you can test it by *$ ./vpn_indicator* after launching *vpnproxy_tui*
+you can test it by *$ ./vpn_indicator.py* after launching *vpnproxy_tui.py*
 
 ![](http://s19.postimg.org/580s2qyo3/2connect_success.png)
 
