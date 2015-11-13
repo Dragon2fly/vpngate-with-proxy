@@ -185,7 +185,7 @@ class Connection:
             ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
         if self.cfg.dns['fix_dns'] == 'yes':
             self.cfg.dns['dns'] = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
-        if not self.cfg.dns:
+        if not self.cfg.dns['dns']:
             self.cfg.dns['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
 
         self.cfg.openvpn['verbose'] = 'no' if 'n' in raw_input(

@@ -128,7 +128,7 @@ class Setting:
         self.path = path
         self.parser = ConfigParser.SafeConfigParser()
 
-        self.proxy = OrderedDict([('use proxy', 'no'), ('address', ''),
+        self.proxy = OrderedDict([('use_proxy', 'no'), ('address', ''),
                                   ('port', ''),
                                   ('ip', '')])
 
