@@ -33,7 +33,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   ```Shell
     $ export http_proxy="http://your_proxy:your_port"
     $ export https_proxy="http://your_proxy:your_port"
-    $ sudo -E apt-get update && sudo apt-get upgrade
+    $ sudo -E apt-get update && sudo -E apt-get upgrade
   ```
 
   * Please check the os clock and calendar is correct for openvpn authentication works properly.
