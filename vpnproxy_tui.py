@@ -39,7 +39,7 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 mirrors = ['http://www.vpngate.net',        # Japan
            'http://125.131.205.167:52806',  # Korea
            'http://115.160.46.181:38061',   # Korea
-           'http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715'   # Japan
+           'http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715',   # Japan
            'http://captkaos351.net:16691'   # Germany
            ]
 
@@ -554,8 +554,10 @@ class Display:
                         self.input.set_edit_pos(len(self.input.get_edit_text()))
 
                 elif text in ['r', 'refresh']:
-                    screen.get_data_status = 'call'
-                    self.input.set_edit_text('')
+                    if screen.get_data_status == 'finish':
+                        screen.get_data_status = 'call'
+                        self.input.set_edit_text('')
+                    else: self.input.set_edit_text('Invalid: please wait for last refresh to be finished')
                 elif 'restore' in text:
                     self.ovpn.dns_manager('restore')
                     self.input.set_edit_text('')
@@ -579,8 +581,10 @@ class Display:
                     self.input.set_edit_pos(len(self.input.get_edit_text()))
 
             elif key == 'ctrl f5':
-                screen.get_data_status = 'call'
-                self.input.set_edit_text('')
+                if screen.get_data_status == 'finish':
+                    screen.get_data_status = 'call'
+                    self.input.set_edit_text('')
+                else: self.input.set_edit_text('Invalid: please wait for last refresh to be finished')
             elif key == 'ctrl r':
                 self.ovpn.dns_manager('restore')
                 self.input.set_edit_text('')
@@ -709,7 +713,7 @@ class Display:
 
                 tex = [('button', buttons[index]), ('attention', labels[index]), s_c_p]
                 if s_c_p.count('all') < 2:
-                    self.ovpn.get_limit = 5
+                    self.ovpn.get_limit = 3
                 else:
                     self.ovpn.get_limit = 1
                 self.sets[index].set_text(tex)
