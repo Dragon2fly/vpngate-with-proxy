@@ -227,7 +227,7 @@ class Connection:
         else:
             proxies = {}
 
-        self.vpndict.clear()
+        vpndict = {}
         i = 0
         success = 0
         while i < len(mirrors):
@@ -240,11 +240,15 @@ class Connection:
                     self.messages['debug'].appendleft(' Gate ' + mirrors[i] + ' does not have expected data!')
                 else:
                     servers = [line.split(',') for line in vpn_data.split('\n')]
-                    self.vpndict.update({s[0]: Server(s) for s in servers[2:] if len(s) > 1})
+                    vpndict.update({s[0]: Server(s) for s in servers[2:] if len(s) > 1})
                     self.messages['debug'].appendleft(' Fetching servers completed')
                     success += 1
 
-                if success == 1: break
+                if success == 1:
+                    self.vpndict.clear()
+                    self.vpndict = vpndict
+                    break
+
                 i += 1
 
             except requests.exceptions.RequestException as e:
