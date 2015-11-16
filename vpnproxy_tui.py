@@ -36,11 +36,12 @@ if euid != 0:
 ON_POSIX = 'posix' in sys.builtin_module_names
 
 # Define some mirrors of vpngate.net
-mirrors = ['http://www.vpngate.net',
-           'http://103.253.112.16:49882',
-           'http://hannan.postech.ac.kr:6395',
-           'http://115.160.46.181:38061',
-           'http://hornet.knu.ac.kr:36171']
+mirrors = ['http://www.vpngate.net',        # Japan
+           'http://125.131.205.167:52806',  # Korea
+           'http://115.160.46.181:38061',   # Korea
+           'http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715'   # Japan
+           'http://captkaos351.net:16691'   # Germany
+           ]
 
 # TODO: add user manual to this and can be access by h, help. It may never be done, reads the README file instead
 
@@ -111,6 +112,7 @@ class Connection:
         self.vpn_queue = None
         self.connect_status = False
         self.kill = False
+        self.get_limit = 1
 
         self.connected_servers = []
         self.messages = OrderedDict([('country', deque([' '], maxlen=1)),
@@ -194,8 +196,22 @@ class Connection:
         self.cfg.write()
         print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
+    def get_csv(self, url, queue,  proxy={}):
+        self.messages['debug'].appendleft(' using gate: ' + url)
+        try:
+            gate = url + '/api/iphone/'
+            vpn_data = requests.get(gate, proxies=proxy, timeout=3).text.replace('\r', '')
+            servers = [line.split(',') for line in vpn_data.split('\n')]
+            vpndict = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
+            self.messages['debug'].appendleft(' gate ' + url + ': success')
+            queue.put((1, vpndict))
+        except requests.exceptions.RequestException as e:
+            self.messages['debug'].appendleft(str(e))
+            self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
+            queue.put((0, {}))
+
     def get_data(self):
-        if self.use_proxy == 'yes' and not self.connect_status:
+        if self.use_proxy == 'yes':
             self.messages['debug'].appendleft(' Pinging proxy... ')
             ping_name = ['ping', '-w 2', '-c 2', '-W 2', self.proxy]
             ping_ip = ['ping', '-w 2', '-c 2', '-W 2', self.ip]
@@ -227,43 +243,32 @@ class Connection:
         else:
             proxies = {}
 
-        vpndict = {}
-        i = 0
+        my_queue = Queue()
+        my_thread = []
+        for url in mirrors[0:self.get_limit]:
+            t = Thread(target=self.get_csv, args=(url, my_queue, proxies))
+            t.start()
+            my_thread.append(t)
+
+        for t in my_thread: t.join()
+
         success = 0
-        while i < len(mirrors):
-            try:
-                self.messages['debug'].appendleft(' using gate: ' + mirrors[i])
-                gate = mirrors[i] + '/api/iphone/'
-                vpn_data = requests.get(gate, proxies=proxies, timeout=2).text.replace('\r', '')
+        self.vpndict.clear()
+        for res in [my_queue.get() for r in xrange(self.get_limit)]:
+            success += res[0]
+            self.vpndict.update(res[1])
 
-                if 'vpn_servers' not in vpn_data:
-                    self.messages['debug'].appendleft(' Gate ' + mirrors[i] + ' does not have expected data!')
-                else:
-                    servers = [line.split(',') for line in vpn_data.split('\n')]
-                    vpndict.update({s[0]: Server(s) for s in servers[2:] if len(s) > 1})
-                    self.messages['debug'].appendleft(' Fetching servers completed')
-                    success += 1
-
-                if success == 1:
-                    self.vpndict.clear()
-                    self.vpndict = vpndict
-                    break
-
-                i += 1
-
-            except requests.exceptions.RequestException as e:
-                self.messages['debug'].appendleft(str(e))
-                self.messages['debug'].appendleft(' Connection to gate ' + mirrors[i] + ' failed')
-                i += 1
+        if not success:
+            self.messages['debug'].appendleft(' Failed to get VPN servers data\n '
+                                              'Check your network setting and proxy')
         else:
-            if not success:
-                self.messages['debug'].appendleft(' Failed to get VPN servers data\n '
-                                                  'Check your network setting and proxy')
-                sys.exit(1)
+            self.messages['debug'].appendleft(' Fetching servers completed %s' % success)
 
-    def refresh_data(self):
-        # fetch data from vpngate.net
-        self.get_data()
+    def refresh_data(self, resort_only=''):
+        if not resort_only:
+            # fetch data from vpngate.net
+            self.get_data()
+
         if self.filters['country'] != 'all':
             name = self.filters['country']
             self.vpndict = dict([vpn for vpn in self.vpndict.items()
@@ -475,9 +480,9 @@ class Display:
             self.ovpn.vpn_checker()
 
         # check if user want to fetch new vpn server list
-        if self.get_data_status == 'call' and not self.get_data.isAlive():
+        if 'call' in self.get_data_status and not self.get_data.isAlive():
             self.get_vpn_data()  # clear the template of server list
-            self.get_data = Thread(target=self.ovpn.refresh_data)
+            self.get_data = Thread(target=self.ovpn.refresh_data, kwargs={'resort_only':self.get_data_status[4:]})
             self.get_data.daemon = True
             self.get_data.start()
             self.get_data_status = 'wait'
@@ -703,6 +708,10 @@ class Display:
                 self.ovpn.cfg.write()
 
                 tex = [('button', buttons[index]), ('attention', labels[index]), s_c_p]
+                if s_c_p.count('all') < 2:
+                    self.ovpn.get_limit = 5
+                else:
+                    self.ovpn.get_limit = 1
                 self.sets[index].set_text(tex)
                 self.input.set_edit_text('refresh')
                 self.input.set_edit_pos(len('refresh'))
@@ -713,6 +722,7 @@ class Display:
 
                 tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index]]
                 self.sets[index].set_text(tex)
+                self.get_data_status = 'callresort'
                 self.input.set_edit_text('refresh')
                 self.input.set_edit_pos(len('refresh'))
 
@@ -734,7 +744,7 @@ class Display:
         self.logger(msg)
         if msg:
             ind = 0
-            for mtype in msg:
+            for mtype in list(msg):
                 for m in msg[mtype]:
                     if 'successfully' in m or 'dns' in m or 'complete' in m:
                         self.state[ind].set_text(('attention', m))
