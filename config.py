@@ -74,7 +74,7 @@ def get_input(s, option):
             while user_input.lower() not in ['y', 'n', 'yes', 'no']:
                 user_input = raw_input('Use proxy to connect to vpn? (yes|no): ')
             else:
-                s.proxy['use proxy'] = 'no' if user_input in 'no' else 'yes'
+                s.proxy['use_proxy'] = 'no' if user_input in 'no' else 'yes'
 
         elif user_input == '4':
             while user_input not in ['speed', 'ping', 'score', 'up time', 'uptime']:

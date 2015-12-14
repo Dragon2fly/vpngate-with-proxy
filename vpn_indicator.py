@@ -204,6 +204,7 @@ class VPNIndicator:
             summary = 'Connected to main program'
             body = ''
         elif 'successfully' in messages[0]:
+            print messages[1:]
             summary = 'VPN tunnel established'
             body = '''
             %s \t             %s

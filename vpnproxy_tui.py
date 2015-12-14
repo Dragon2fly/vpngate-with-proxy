@@ -688,7 +688,7 @@ class Display:
             if key == 'f2':
                 yn = config_data[index] = self.sets.contents[index][0].result[0]
                 proxy, port = self.sets.contents[index][0].result[1:]
-                proxy_ = {'use proxy': yn, 'address': proxy, 'port': port, 'ip': ip}
+                proxy_ = {'use_proxy': yn, 'address': proxy, 'port': port, 'ip': ip}
                 self.ovpn.rewrite('proxy', **proxy_)
 
                 tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index]]
