@@ -167,7 +167,7 @@ def dns_manager(action='backup', DNS='8.8.8.8'):
 
     if not os.path.exists(dns_orig):
         print ctext('Backup DNS setting', 'yB')
-        backup = ['-a', '/etc/resolv.conf', '/etc/resolv.conf.bak']
+        backup = ['-aL', '/etc/resolv.conf', '/etc/resolv.conf.bak']
         call(['cp'] + backup)
 
     if action == "change" and dns_fix == 'yes':
