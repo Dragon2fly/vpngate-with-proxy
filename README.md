@@ -1,10 +1,10 @@
 # vpngate-with-proxy
-VPN GATE client for linux, be able to connect to open vpn server through proxy
+VPN GATE client for linux, be able to connect to open vpn server at http://www.vpngate.net/en/ through proxy
 by using python script. Auto add DNS to fix DNS leak. You can use this program with or without proxy.
 
 Work on debian based system. Tested on Ubuntu and Raspbian.
 
-I will wrap SoftEther_vpn later when I have time. You're also welcomed to fork this repo and wrap SoftEther_vpn yourself.
+I will wrap SoftEther_vpn later when I have time. You are welcome to fork this repo and wrap SoftEther_vpn yourself.
 
 **Indicator**: Tested on Ubuntu and is only enabled by default on Ubuntu. For other distro,
 you can test it by *$ ./vpn_indicator.py* after launching *vpnproxy_tui.py*
@@ -176,7 +176,6 @@ server, that doesn't mean you are totally safe.
   If it still doesn't or your os doesn't have `network-manager`, restart your system.
   If it still doesn't, your proxy may be offline or `\etc\resolv.conf`'s content is incorrect.
   Ping your proxy from another computer to test. And double check `\etc\resolv.conf`
-
 
 
 
