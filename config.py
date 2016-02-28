@@ -46,17 +46,20 @@ def get_input(s, option):
         return
 
     while 1:
-        proxy, port, ip, sort_by, use_proxy, s_country, s_port, fix_dns, dns, verbose = s[:]
-        print ctext('\n Current settings:', 'B')
-        print ctext('   1. Proxy address:', 'yB'), proxy, ctext('\t2. port: ', 'yB'), port
-        print ctext('   3. Use proxy:', 'yB'), use_proxy
-        print ctext('   4. Sort servers by:', 'yB'), sort_by
-        print ctext('   5. Country filter:', 'yB'), s_country, ctext('\t\t6. VPN server\'s port: ', 'yB'), s_port
-        print ctext('   7. Fix dns leaking:', 'yB'), fix_dns
-        print ctext('   8. DNS list: ', 'yB'), dns
-        print ctext('   9. Show openvpn log:', 'B'), verbose
+        use_proxy, proxy, port, ip, sort_by, s_country, s_port, fix_dns, dns, verbose, mirrors = s[:]
+        mirrors = mirrors.split(', ')
 
-        user_input = raw_input('\nCommand or Enter to fetch server list: ')
+        print ctext('\n Current settings:', 'B')
+        print ctext('    1. Proxy address:', 'yB'), proxy, ctext('\t2. port: ', 'yB'), port
+        print ctext('    3. Use proxy:', 'yB'), use_proxy
+        print ctext('    4. Sort servers by:', 'yB'), sort_by
+        print ctext('    5. Country filter:', 'yB'), s_country, ctext('\t\t6. VPN server\'s port: ', 'yB'), s_port
+        print ctext('    7. Fix dns leaking:', 'yB'), fix_dns
+        print ctext('    8. DNS list: ', 'yB'), dns
+        print ctext('    9. Show openvpn log:', 'B'), verbose
+        print ctext('   10. VPN gate\'s mirrors:', 'yB'), '%s ...' % mirrors[1]
+
+        user_input = raw_input('\nCommand or just Enter to continue: ')
         if user_input == '':
             print 'Process to vpn server list'
             s.write()
@@ -66,7 +69,7 @@ def get_input(s, option):
             s.proxy['ip'] = socket.gethostbyname(proxy)
         elif user_input == '2':
             user_input = 'abc'
-            while not user_input.strip().isdigit():
+            while not user_input.strip().isdigit() and 0 <= int(user_input.strip()) <= 65535:
                 user_input = raw_input('Http proxy\'s port (eg: 8080): ')
             s.proxy['port'] = user_input
 
@@ -116,6 +119,36 @@ def get_input(s, option):
             else:
                 s.openvpn['verbose'] = 'no' if user_input in 'no' else 'yes'
 
+        elif user_input == '10':
+            while True:
+                user_input = "abc"
+                print ctext('\n Current VPNGate\'s mirrors:', 'B')
+                for ind, url in enumerate(mirrors):
+                    print ' ', ind, url
+
+                print '\nType '+ctext("add %s", 'B') + ' or ' + ctext("del %d", 'B')+' to add or delete mirror \n' \
+                      '  where %s is a mirror\'s url and %d is index number of a mirror' \
+                      '\n  Or just Enter to leave it intact'
+
+                while user_input.lower()[0:3] not in ("add", "del", ""):
+                    user_input = raw_input("\033[1mYour command: \033[0m")
+                else:
+                    if user_input.lower()[0:3] == "add":
+                        url = user_input.lower()[3:].strip()
+                        mirrors.append(url)
+                        s.mirror['url_%s' % (len(mirrors)-1)] = url
+                    elif user_input.lower()[0:3] == "del":
+                        number = user_input.lower()[3:].strip()
+                        if number.isdigit() and int(number) < len(mirrors):
+                            num = int(number)
+                            mirrors.pop(num)
+                            s.mirror.pop('url_%s' % num)
+                            s.parser.remove_option('mirror', 'url_%s' % num)
+                        else:
+                            print '  Index number is not exist!'
+                    else:
+                        break
+
         elif user_input in ['q', 'quit', 'exit']:
             print ctext('Goodbye'.center(40), 'gB')
             sys.exit(0)
@@ -136,21 +169,30 @@ class Setting:
 
         self.filter = OrderedDict([('country', 'all'), ('port', 'all')])
 
-        self.dns = OrderedDict([('fix_dns', 'yes'), ('dns', '8.8.8.8')])
+        self.dns = OrderedDict([('fix_dns', 'yes'),
+                                ('dns', '8.8.8.8, 8.8.8.8, 84.200.69.80, 208.67.222.222')])
 
         self.openvpn = {'verbose': 'yes'}
+
+        self.mirror = OrderedDict([('url_0', 'http://www.vpngate.net'),
+                                   ('url_1', 'http://125.131.205.167:52806'),
+                                   ('url_2', 'http://115.160.46.181:38061'),
+                                   ('url_3', 'http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715'),
+                                   ('url_4', 'http://captkaos351.net:16691')])
 
         self.sections = OrderedDict([('proxy', self.proxy),
                                      ('sort', self.sort),
                                      ('country_filter', self.filter),
                                      ('DNS_leak', self.dns),
-                                     ('openvpn', self.openvpn)])
+                                     ('openvpn', self.openvpn),
+                                     ('mirror', self.mirror)])
 
     def __getitem__(self, index):
         data = []
-        for sec in self.sections.values():
+        for sec in self.sections.values()[:-1]:
             data += sec.values()
 
+        data.append(', '.join(self.mirror.values()))
         return data[index]
 
     def write(self):
@@ -168,4 +210,8 @@ class Setting:
 
         for sect in self.sections:
             for content in self.sections[sect]:
-                self.sections[sect][content] = self.parser.get(sect, content)
+                try:
+                    self.sections[sect][content] = self.parser.get(sect, content)
+                except ConfigParser.NoOptionError:
+                    if content[0:3]=='url' and int(content[4:]) != 0:
+                        self.mirror.pop(content)

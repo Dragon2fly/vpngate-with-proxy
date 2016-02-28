@@ -36,12 +36,7 @@ if euid != 0:
 ON_POSIX = 'posix' in sys.builtin_module_names
 
 # Define some mirrors of vpngate.net
-mirrors = ['http://www.vpngate.net',        # Japan
-           'http://125.131.205.167:52806',  # Korea
-           'http://115.160.46.181:38061',   # Korea
-           'http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715',   # Japan
-           'http://captkaos351.net:16691'   # Germany
-           ]
+mirrors = ['http://www.vpngate.net']        # add your mirrors to config.ini file, not here
 
 # TODO: add user manual to this and can be access by h, help. It may never be done, reads the README file instead
 
@@ -137,6 +132,7 @@ class Connection:
         self.reload()
 
     def reload(self):
+        mirrors.extend(self.cfg.mirror.values()[1:])
         self.use_proxy, self.proxy, self.port, self.ip = self.cfg.proxy.values()
         self.sort_by = self.cfg.sort.values()[0]
         self.filters = self.cfg.filter
@@ -151,12 +147,12 @@ class Connection:
 
     def first_config(self):
         print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
-        print "If you don't know what to do, just press Enter to use default option\n"
 
         self.cfg.proxy['use_proxy'] = 'no' if raw_input(
             ctext('Do you need proxy to connect? ', 'B') + '[yes|no(default)]:') in 'no' else 'yes'
         if self.cfg.proxy['use_proxy'] == 'yes':
-            print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
+            print ' Input your http proxy address and port without including "http://" \nsuch as ' \
+                  + ctext('www.abc.com:8080', 'pB')
             while 1:
                 try:
                     proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
@@ -174,26 +170,7 @@ class Connection:
                     self.cfg.proxy['ip'] = ip
                     break
 
-        self.cfg.sort['key'] = raw_input(ctext('\nSort servers by ', 'B') + '[speed (default) | ping | score | up time]: ')
-        if self.cfg.sort['key'] not in ['speed', 'ping', 'score', 'up time']:
-            self.cfg.sort['key'] = 'speed'
-
-        self.cfg.filter['country'] = raw_input(
-            ctext('\nFilter server by country ', 'B') + '[eg: all (default), jp, japan]: ')
-        if not self.cfg.filter['country']:
-            self.cfg.filter['country'] = 'all'
-
-        self.cfg.dns['fix_dns'] = 'yes' if raw_input(
-            ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
-        if self.cfg.dns['fix_dns'] == 'yes':
-            self.cfg.dns['dns'] = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
-        if not self.cfg.dns['dns']:
-            self.cfg.dns['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
-
-        self.cfg.openvpn['verbose'] = 'no' if 'n' in raw_input(
-            ctext('Write openvpn log? [yes (default)| no]: ', 'B')) else 'yes'
-
-        self.cfg.write()
+        get_input(self.cfg, 'config')
         print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
     def get_csv(self, url, queue, proxy={}):
