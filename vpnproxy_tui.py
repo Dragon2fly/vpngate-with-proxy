@@ -196,15 +196,22 @@ class Connection:
         self.cfg.write()
         print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
-    def get_csv(self, url, queue,  proxy={}):
+    def get_csv(self, url, queue, proxy={}):
         self.messages['debug'].appendleft(' using gate: ' + url)
         try:
             gate = url + '/api/iphone/'
             vpn_data = requests.get(gate, proxies=proxy, timeout=3).text.replace('\r', '')
             servers = [line.split(',') for line in vpn_data.split('\n')]
-            vpndict = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
-            self.messages['debug'].appendleft(' gate ' + url + ': success')
-            queue.put((1, vpndict))
+            if servers[0][0] == '*vpn_servers':
+                vpndict = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
+                self.messages['debug'].appendleft(' gate ' + url + ': success')
+                queue.put((1, vpndict))
+            else:
+                self.messages['debug'].appendleft(' Received WRONG data file')
+                self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
+                self.messages['debug'].appendleft(vpn_data)
+                queue.put((0, {}))
+
         except requests.exceptions.RequestException as e:
             self.messages['debug'].appendleft(str(e))
             self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
