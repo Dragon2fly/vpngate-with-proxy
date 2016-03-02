@@ -126,9 +126,9 @@ def get_input(s, option):
                 for ind, url in enumerate(mirrors):
                     print ' ', ind, url
 
-                print '\nType '+ctext("add %s", 'B') + ' or ' + ctext("del %d", 'B')+' to add or delete mirror \n' \
-                      '  where %s is a mirror\'s url and %d is index number of a mirror' \
-                      '\n  Or just Enter to leave it intact'
+                print '\nType ' + ctext("add %s", 'B') + ' or ' + ctext("del %d", 'B') + ' to add or delete mirror \n' \
+                                                                                         '  where %s is a mirror\'s url and %d is index number of a mirror' \
+                                                                                         '\n  Or just Enter to leave it intact'
 
                 while user_input.lower()[0:3] not in ("add", "del", ""):
                     user_input = raw_input("\033[1mYour command: \033[0m")
@@ -136,17 +136,15 @@ def get_input(s, option):
                     if user_input.lower()[0:3] == "add":
                         url = user_input.lower()[3:].strip()
                         mirrors.append(url)
-                        s.mirror['url_%s' % (len(mirrors)-1)] = url
                     elif user_input.lower()[0:3] == "del":
                         number = user_input.lower()[3:].strip()
                         if number.isdigit() and int(number) < len(mirrors):
                             num = int(number)
                             mirrors.pop(num)
-                            s.mirror.pop('url_%s' % num)
-                            s.parser.remove_option('mirror', 'url_%s' % num)
                         else:
                             print '  Index number is not exist!'
                     else:
+                        s.mirror['url'] = ', '.join(mirrors)
                         break
 
         elif user_input in ['q', 'quit', 'exit']:
@@ -174,11 +172,10 @@ class Setting:
 
         self.openvpn = {'verbose': 'yes'}
 
-        self.mirror = OrderedDict([('url_0', 'http://www.vpngate.net'),
-                                   ('url_1', 'http://125.131.205.167:52806'),
-                                   ('url_2', 'http://115.160.46.181:38061'),
-                                   ('url_3', 'http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715'),
-                                   ('url_4', 'http://captkaos351.net:16691')])
+        self.mirror = {'url': "http://125.131.205.167:52806, "
+                              "http://115.160.46.181:38061, "
+                              "http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715, "
+                              "http://captkaos351.net:16691"}
 
         self.sections = OrderedDict([('proxy', self.proxy),
                                      ('sort', self.sort),
@@ -189,10 +186,9 @@ class Setting:
 
     def __getitem__(self, index):
         data = []
-        for sec in self.sections.values()[:-1]:
+        for sec in self.sections.values():
             data += sec.values()
 
-        data.append(', '.join(self.mirror.values()))
         return data[index]
 
     def write(self):
@@ -212,6 +208,6 @@ class Setting:
             for content in self.sections[sect]:
                 try:
                     self.sections[sect][content] = self.parser.get(sect, content)
-                except ConfigParser.NoOptionError:
-                    if content[0:3]=='url' and int(content[4:]) != 0:
-                        self.mirror.pop(content)
+                except ConfigParser.NoSectionError:
+                    self.parser.add_section(sect)
+                    self.parser.set(sect, content, self.sections[sect][content])

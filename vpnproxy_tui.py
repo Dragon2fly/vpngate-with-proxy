@@ -36,7 +36,7 @@ if euid != 0:
 ON_POSIX = 'posix' in sys.builtin_module_names
 
 # Define some mirrors of vpngate.net
-mirrors = ['http://www.vpngate.net']        # add your mirrors to config.ini file, not here
+mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here
 
 # TODO: add user manual to this and can be access by h, help. It may never be done, reads the README file instead
 
@@ -132,7 +132,7 @@ class Connection:
         self.reload()
 
     def reload(self):
-        mirrors.extend(self.cfg.mirror.values()[1:])
+        mirrors.extend(self.cfg.mirror['url'].split(', '))
         self.use_proxy, self.proxy, self.port, self.ip = self.cfg.proxy.values()
         self.sort_by = self.cfg.sort.values()[0]
         self.filters = self.cfg.filter
