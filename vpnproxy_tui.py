@@ -67,6 +67,12 @@ class Server:
             txt_data = txt_data.replace('\r\n;http-proxy [proxy server] [proxy port]\r\n',
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
+        extra_option = ['keepalive 10 120\r\n',         # prevent connection drop due to inactivity timeout
+                        ]
+        if True:
+            index = txt_data.find('client\r\n')
+            txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
+
         tmp_vpn = open('vpn_tmp', 'w+')
         tmp_vpn.write(txt_data)
         return tmp_vpn

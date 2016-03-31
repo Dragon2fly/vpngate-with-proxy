@@ -22,28 +22,13 @@ if euid != 0:
     os.execlpe('sudo', *args)
 
 # Define some mirrors of vpngate.net
-mirrors = ['http://www.vpngate.net',
-           'http://103.253.112.16:49882',
-           'http://158.ip-37-187-34.eu:58272',
-           'http://121.186.216.97:38438',
-           'http://hannan.postech.ac.kr:6395',
-           'http://115.160.46.181:38061',
-           'http://hornet.knu.ac.kr:36171',
-           'http://182-166-242-138f1.osk3.eonet.ne.jp:64298']
+mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here
 
 # TODO: add user manual to this and can be access by h, help.
 # add option to change DNS differ from google
 
 
-class Server():
-    # if os.path.exists('/sbin/resolvconf'):
-    #     # dns_leak_stop = 'script-security 2\r\nup update-resolv-conf.sh\r\ndown update-resolv-conf.sh\r\n'
-    #     dns_leak_stop = 'script-security 2\r\nup updatedns.sh\r\n'
-    #
-    # else:
-    #     print ''
-    #     dns_leak_stop = ''
-
+class Server:
     def __init__(self, data):
         self.ip = data[1]
         self.score = int(data[2])
@@ -68,6 +53,12 @@ class Server():
             txt_data = txt_data.replace('\r\n;http-proxy-retry\r\n', '\r\nhttp-proxy-retry 3\r\n')
             txt_data = txt_data.replace('\r\n;http-proxy [proxy server] [proxy port]\r\n',
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
+
+        extra_option = ['keepalive 10 120\r\n',  # prevent connection drop due to inactivity timeout
+                        ]
+        if True:
+            index = txt_data.find('client\r\n')
+            txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
 
         tmp_vpn = open('vpn_tmp', 'w+')
         tmp_vpn.write(txt_data)
@@ -277,6 +268,7 @@ else:
     print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
 # ------------------- check_dependencies: ----------------------
+mirrors.extend(cfg.mirror['url'].split(', '))
 use_proxy, proxy, port, ip = cfg.proxy.values()
 sort_by = cfg.sort.values()[0]
 s_country, s_port = cfg.filter.values()
@@ -347,6 +339,7 @@ while True:
         elif user_input.strip().lower() in ('c', 'config'):
             get_input(cfg, [user_input])
 
+            mirrors = ["http://www.vpngate.net"] + cfg.mirror['url'].split(', ')
             use_proxy, proxy, port, ip = cfg.proxy.values()
             sort_by = cfg.sort.values()[0]
             s_country, s_port = cfg.filter.values()
