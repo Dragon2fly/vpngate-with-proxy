@@ -384,10 +384,10 @@ class Connection:
                 self.dns_manager('change')
                 self.messages['status'] += ['VPN tunnel established successfully', 'Ctrl+C to quit VPN']
                 self.connect_status = True
-            elif 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
+            elif self.connect_status and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
                 self.dropped_time += 1
                 self.messages['status'][1] = 'Vpn has restarted %s time(s)' % self.dropped_time
-            elif self.dropped_time == self.max_retry or 'Connection timed out' in line or 'SIGTERM' in line:
+            elif 'Restart pause, ' in line or 'Connection timed out' in line or 'SIGTERM' in line:
                 self.dropped_time = 0
                 self.messages['status'] += ['Vpn got error, terminated', ' ']
                 self.vpn_cleanup()
