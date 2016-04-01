@@ -68,7 +68,7 @@ class Server:
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
         extra_option = ['keepalive 5 30\r\n',         # prevent connection drop due to inactivity timeout
-                        ]
+                        'connect-retry 2\r\n']
         if True:
             index = txt_data.find('client\r\n')
             txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
@@ -103,6 +103,8 @@ class Connection:
         self.cfg = Setting(self.config_file)
         self.args = sys.argv[1:]
         self.debug = []
+        self.dropped_time = 0
+        self.max_retry = 3
 
         self.vpndict = {}
         self.filters = {'Country': 'all', 'Port': 'all'}
@@ -378,10 +380,15 @@ class Connection:
         else:
             self.messages['debug'].appendleft(line.strip()[11:])
             if 'Initialization Sequence Completed' in line:
+                self.dropped_time = 0
                 self.dns_manager('change')
                 self.messages['status'] += ['VPN tunnel established successfully', 'Ctrl+C to quit VPN']
                 self.connect_status = True
-            elif 'Restart pause, 5 second(s)' in line or 'Connection timed out' in line or 'SIGTERM' in line:
+            elif 'Restart pause, 5 second(s)' in line and self.dropped_time <= self.max_retry:
+                self.dropped_time += 1
+                self.messages['status'][1] = 'Vpn has restarted %s time' % self.dropped_time
+            elif self.dropped_time > self.max_retry or 'Connection timed out' in line or 'SIGTERM' in line:
+                self.dropped_time = 0
                 self.messages['status'] += ['Vpn got error, terminated', ' ']
                 self.vpn_cleanup()
             elif 'ERROR' in line and 'add command failed' not in line or 'Exiting due' in line:
@@ -389,7 +396,10 @@ class Connection:
                 self.vpn_cleanup()
 
             elif p.poll() is None and not self.connect_status:
-                self.messages['status'] += ['Connecting...', ' ']
+                if 0 < self.dropped_time <= self.max_retry:
+                    self.messages['status'][0] = 'Connecting...'
+                else:
+                    self.messages['status'] += ['Connecting...', ' ']
 
 
 class Display:

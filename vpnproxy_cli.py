@@ -55,7 +55,7 @@ class Server:
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
         extra_option = ['keepalive 5 30\r\n',  # prevent connection drop due to inactivity timeout
-                        ]
+                        'connect-retry 2\r\n']
         if True:
             index = txt_data.find('client\r\n')
             txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
@@ -180,7 +180,7 @@ def vpn_manager(ovpn):
         So openvpn not keep sending requests to proxy server and
          save you from being blocked.
     """
-    global dns, verbose
+    global dns, verbose, dropped_time
 
     command = ['openvpn', '--config', ovpn]
     p = Popen(command, stdout=PIPE, stdin=PIPE)
@@ -190,10 +190,15 @@ def vpn_manager(ovpn):
             if verbose == 'yes':
                 print line,
             if 'Initialization Sequence Completed' in line:
+                dropped_time = 0
                 dns_manager('change', dns)
                 print ctext('VPN tunnel established successfully'.center(40), 'B')
                 print 'Ctrl+C to quit VPN'.center(40)
-            if 'Restart pause, 5 second(s)' in line or 'Connection timed out' in line:
+            elif 'Restart pause, 5 second(s)' in line and dropped_time <= max_retry:
+                dropped_time += 1
+                print ctext('Vpn has restarted %s time' % dropped_time, 'rB')
+            elif dropped_time > max_retry or 'Connection timed out' in line:
+                dropped_time = 0
                 print line
                 print ctext('Terminate vpn', 'B')
                 p.send_signal(signal.SIGINT)
@@ -205,6 +210,10 @@ def vpn_manager(ovpn):
         dns_manager('restore')
 
 # ---------------------------- Main  --------------------------------
+# anti dropping
+dropped_time = 0
+max_retry = 3
+
 # get config file path
 path = os.path.realpath(sys.argv[0])
 config_file = os.path.split(path)[0] + '/config.ini'
