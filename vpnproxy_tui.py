@@ -394,6 +394,8 @@ class Connection:
             elif 'ERROR' in line and 'add command failed' not in line or 'Exiting due' in line:
                 self.messages['status'] += ['Vpn got error, exited', ' ']
                 self.vpn_cleanup()
+            elif '--http-proxy MUST' in line:
+                self.messages['status'] += ['Can\'t use udp with proxy!', ' ']
 
             elif p.poll() is None and not self.connect_status:
                 if 0 < self.dropped_time <= self.max_retry:
