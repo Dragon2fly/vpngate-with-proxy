@@ -68,7 +68,8 @@ class Server:
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
         extra_option = ['keepalive 5 30\r\n',         # prevent connection drop due to inactivity timeout
-                        '%s' % ('connect-retry 2\r\n' if self.proto == 'tcp' else '')]
+                        '%s' % ('connect-retry 2\r\n' if self.proto == 'tcp' else ''),
+                        ]
         if True:
             index = txt_data.find('client\r\n')
             txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
@@ -387,7 +388,7 @@ class Connection:
             elif self.connect_status and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
                 self.dropped_time += 1
                 self.messages['status'][1] = 'Vpn has restarted %s time(s)' % self.dropped_time
-            elif 'Restart pause, ' in line or 'Connection timed out' in line or 'SIGTERM' in line:
+            elif 'Restart pause, ' in line or 'Cannot resolve' in line or 'Connection timed out' in line or 'SIGTERM' in line:
                 self.dropped_time = 0
                 self.messages['status'] += ['Vpn got error, terminated', ' ']
                 self.vpn_cleanup()

@@ -197,7 +197,7 @@ def vpn_manager(ovpn):
             elif 'Restart pause, ' in line and dropped_time <= max_retry:
                 dropped_time += 1
                 print ctext('Vpn has restarted %s time' % dropped_time, 'rB')
-            elif dropped_time == max_retry or 'Connection timed out' in line:
+            elif dropped_time == max_retry or 'Connection timed out' in line or 'Cannot resolve' in line:
                 dropped_time = 0
                 print line
                 print ctext('Terminate vpn', 'B')
