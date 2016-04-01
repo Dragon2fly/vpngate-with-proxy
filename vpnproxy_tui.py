@@ -68,7 +68,7 @@ class Server:
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
         extra_option = ['keepalive 5 30\r\n',         # prevent connection drop due to inactivity timeout
-                        'connect-retry 2\r\n']
+                        '%s' % ('connect-retry 2\r\n' if self.proto == 'tcp' else '')]
         if True:
             index = txt_data.find('client\r\n')
             txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
