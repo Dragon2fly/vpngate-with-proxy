@@ -69,7 +69,7 @@ def get_input(s, option):
             s.proxy['ip'] = socket.gethostbyname(proxy)
         elif user_input == '2':
             user_input = 'abc'
-            while not user_input.strip().isdigit() and 0 <= int(user_input.strip()) <= 65535:
+            while not user_input.strip().isdigit() or not 0 <= int(user_input.strip()) <= 65535:
                 user_input = raw_input('Http proxy\'s port (eg: 8080): ')
             s.proxy['port'] = user_input
 
