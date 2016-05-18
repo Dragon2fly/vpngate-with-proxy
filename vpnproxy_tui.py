@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.25"
+__version__ = "1.27"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -184,6 +184,7 @@ class Connection:
 
     def get_csv(self, url, queue, proxy={}):
         self.messages['debug'].appendleft(' using gate: ' + url)
+        # self.messages['debug'].appendleft(str(proxy))
         try:
             gate = url + '/api/iphone/'
             vpn_data = requests.get(gate, proxies=proxy, timeout=3).text.replace('\r', '')
@@ -229,12 +230,12 @@ class Connection:
                 self.ip = socket.gethostbyname(self.proxy)
 
             proxies = {
-                'http': 'http://' + self.proxy + ':' + self.port,
-                'https': 'http://' + self.proxy + ':' + self.port,
+                'http': 'http://' + self.ip + ':' + self.port,
+                'https': 'https://' + self.ip + ':' + self.port,
             }
 
         else:
-            proxies = {}
+            proxies = {'no': 'pass',}
 
         my_queue = Queue()
         my_thread = []
