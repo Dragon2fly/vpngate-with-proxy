@@ -280,6 +280,7 @@ class Connection:
             self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port in port])
 
         # test alive
+        self.messages['debug'].appendleft(' Filtering out dead servers')
         self.probe()
 
         if self.sort_by == 'speed':
@@ -296,57 +297,62 @@ class Connection:
             sys.exit()
 
         self.sorted[:] = sort
+        self.messages['debug'].appendleft(' Sequence completed')
 
     def probe(self):
-        """ filter out fetched dead Vpn Servers
+        """ Filter out fetched dead Vpn Servers
         """
-        target = self.vpndict.keys()
 
-        def is_alive(server, queue):
-            s = socket.socket()
-            s.settimeout(self.test_timeout)
-            ip = self.vpndict[server].ip
-            port = self.vpndict[server].port
+        def is_alive(servers, queue):
+            target = [(self.vpndict[name].ip, self.vpndict[name].port) for name in servers]
 
             if self.use_proxy == 'yes':
-                s.connect((self.ip, int(self.port)))  # connect to proxy server
-                DATA = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip, port)
-                s.send(DATA)
-                dead = False
-                try:
-                    response = s.recv(100)
-                except socket.timeout:
-                    dead = True
-                finally:
+                for i in range(len(target)):
+                    s = socket.socket()
+                    s.settimeout(self.test_timeout)
+                    s.connect((self.ip, int(self.port)))  # connect to proxy server
+                    ip, port = target[i]
+                    DATA = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip, port)
+                    s.send(DATA)
+                    dead = False
+                    try:
+                        response = s.recv(100)
+                    except socket.timeout:
+                        dead = True
+
                     s.shutdown(socket.SHUT_RD)
                     s.close()
 
-                if dead or "200 Connection established" not in response:
-                    queue.put(server)
+                    if dead or "200 Connection established" not in response:
+                        queue.put(servers[i])
+                    time.sleep(0.25)    # avoid DDos your proxy
 
             else:
-                try:
-                    s.connect((ip, port))
-                    s.shutdown(socket.SHUT_RDWR)
-                    s.close()
-                except socket.timeout:
-                    queue.put(server)
-                except Exception as e:
-                    queue.put(server)
+                for i in range(len(target)):
+                    s = socket.socket()
+                    s.settimeout(self.test_timeout)
+                    ip, port = target[i]
+                    try:
+                        s.connect((ip, port))
+                    except socket.timeout:
+                        queue.put(servers[i])
+                    except Exception as e:
+                        queue.put(servers[i])
+                    finally:
+                        s.shutdown(socket.SHUT_RD)
+                        s.close()
+                        # time.sleep(0.25)      # no need since we make connection to different server
 
         my_queue = Queue()
-        thread_no = 8       # should not be big or you are about to DDoS your proxy server !
-        i = 0
-        while i < len(target):
-            chunk = target[i:i + thread_no]
-            my_thread = []
-            for ind, ser in enumerate(chunk):
-                t = Thread(target=is_alive, args=(ser, my_queue))
-                t.start()
-                my_thread.append(t)
+        chunk_len = 10
+        my_chunk = [self.vpndict.keys()[i:i + chunk_len] for i in range(0, len(self.vpndict), chunk_len)]
+        my_thread = []
+        for chunk in my_chunk:
+            t = Thread(target=is_alive, args=(chunk, my_queue))
+            t.start()
+            my_thread.append(t)
 
-            for t in my_thread: t.join()
-            i += thread_no
+        for t in my_thread: t.join()
 
         while not my_queue.empty():
             dead_server = my_queue.get()
