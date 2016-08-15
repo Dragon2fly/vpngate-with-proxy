@@ -4,7 +4,7 @@ import select
 
 __author__ = 'duc_tin'
 
-from Queue import Queue, Empty
+from Queue import Empty
 import signal, os
 import socket, errno
 import time

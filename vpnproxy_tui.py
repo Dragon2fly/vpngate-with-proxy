@@ -8,15 +8,14 @@ __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
 import os
-import signal
 import base64
 import time
 import datetime
 from copy import deepcopy
 from config import *
+from Queue import Queue
 from subprocess import call, Popen, PIPE
 from threading import Thread
-from Queue import Queue, Empty
 from collections import deque, OrderedDict
 from vpn_indicator import *
 
@@ -24,10 +23,11 @@ from vpn_indicator import *
 euid = os.geteuid()
 if euid != 0:
     import platform
+
     if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
         print 'Launch vpn_indicator'
         with open('out.txt', 'w+') as f:
-            Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1,)
+            Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1, )
 
     args = ['sudo', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
@@ -37,6 +37,7 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 
 # Define some mirrors of vpngate.net
 mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here
+
 
 # TODO: add user manual to this and can be access by h, help. It may never be done, reads the README file instead
 
@@ -67,9 +68,12 @@ class Server:
             txt_data = txt_data.replace('\r\n;http-proxy [proxy server] [proxy port]\r\n',
                                         '\r\nhttp-proxy %s %s\r\n' % (proxy, port))
 
-        extra_option = ['keepalive 5 30\r\n',         # prevent connection drop due to inactivity timeout
+        extra_option = ['keepalive 5 30\r\n',  # prevent connection drop due to inactivity timeout
                         '%s' % ('connect-retry 2\r\n' if self.proto == 'tcp' else ''),
+                        'resolv-retry 2\r\n',
                         ]
+
+        txt_data.replace('resolv-retry infinite\r\n', '')
         if True:
             index = txt_data.find('client\r\n')
             txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
@@ -83,7 +87,8 @@ class Server:
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
-        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto, self.port]
+        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
+               self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
 
@@ -118,6 +123,8 @@ class Connection:
         self.kill = False
         self.get_limit = 1
 
+        self.test_timeout = 2  # probing timeout
+
         self.connected_servers = []
         self.messages = OrderedDict([('country', deque([' '], maxlen=1)),
                                      ('status', deque([' ', ' '], maxlen=2)),
@@ -135,8 +142,8 @@ class Connection:
             else:
                 get_input(self.cfg, self.args)
 
-        self.use_proxy, self.proxy, self.port, self.ip = ['']*4
-        self.sort_by, self.filters, self.dns_fix, self.dns = ['']*4
+        self.use_proxy, self.proxy, self.port, self.ip = [''] * 4
+        self.sort_by, self.filters, self.dns_fix, self.dns = [''] * 4
         self.verbose = ''
         self.reload()
 
@@ -272,6 +279,9 @@ class Connection:
             port = self.filters['port']
             self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port in port])
 
+        # test alive
+        self.probe()
+
         if self.sort_by == 'speed':
             sort = sorted(self.vpndict.keys(), key=lambda x: self.vpndict[x].speed, reverse=True)
         elif self.sort_by == 'ping':
@@ -286,6 +296,61 @@ class Connection:
             sys.exit()
 
         self.sorted[:] = sort
+
+    def probe(self):
+        """ filter out fetched dead Vpn Servers
+        """
+        target = self.vpndict.keys()
+
+        def is_alive(server, queue):
+            s = socket.socket()
+            s.settimeout(self.test_timeout)
+            ip = self.vpndict[server].ip
+            port = self.vpndict[server].port
+
+            if self.use_proxy == 'yes':
+                s.connect((self.ip, int(self.port)))  # connect to proxy server
+                DATA = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip, port)
+                s.send(DATA)
+                dead = False
+                try:
+                    response = s.recv(100)
+                except socket.timeout:
+                    dead = True
+                finally:
+                    s.shutdown(socket.SHUT_RD)
+                    s.close()
+
+                if dead or "200 Connection established" not in response:
+                    queue.put(server)
+
+            else:
+                try:
+                    s.connect((ip, port))
+                    s.shutdown(socket.SHUT_RDWR)
+                    s.close()
+                except socket.timeout:
+                    queue.put(server)
+                except Exception as e:
+                    queue.put(server)
+
+        my_queue = Queue()
+        thread_no = 8       # should not be big or you are about to DDoS your proxy server !
+        i = 0
+        while i < len(target):
+            chunk = target[i:i + thread_no]
+            my_thread = []
+            for ind, ser in enumerate(chunk):
+                t = Thread(target=is_alive, args=(ser, my_queue))
+                t.start()
+                my_thread.append(t)
+
+            for t in my_thread: t.join()
+            i += thread_no
+
+        while not my_queue.empty():
+            dead_server = my_queue.get()
+            del self.vpndict[dead_server]
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
@@ -323,7 +388,7 @@ class Connection:
         self.vpn_server = server
         self.messages['country'] += [server.country_long.strip('of') + '  ' + server.ip]
         self.connected_servers.append(server.ip)
-        vpn_file = server.write_file(self.use_proxy, self.proxy, self.port)
+        vpn_file = server.write_file(self.use_proxy, self.ip, self.port)
         vpn_file.close()
 
         ovpn = vpn_file.name
@@ -349,7 +414,7 @@ class Connection:
         tuntap = Popen(['ifconfig', '-s'], stdout=PIPE).communicate()[0]
         devices = re.findall('tun\d+', tuntap)
         for dev in devices:
-            call(('ip link delete '+dev).split())
+            call(('ip link delete ' + dev).split())
 
     def kill_other(self):
         """
@@ -414,7 +479,6 @@ class Display:
         self.ovpn = vpn_connection
         self.get_data = Thread(target=self.ovpn.refresh_data)
         self.get_data_status = 'finish'
-        self.vpn_log = deque(maxlen=20)
 
         self.timer = 0
         self.cache_msg = None
@@ -486,7 +550,7 @@ class Display:
         # check if user want to fetch new vpn server list
         if 'call' in self.get_data_status and not self.get_data.isAlive():
             self.get_vpn_data()  # clear the template of server list
-            self.get_data = Thread(target=self.ovpn.refresh_data, kwargs={'resort_only':self.get_data_status[4:]})
+            self.get_data = Thread(target=self.ovpn.refresh_data, kwargs={'resort_only': self.get_data_status[4:]})
             self.get_data.daemon = True
             self.get_data.start()
             self.get_data_status = 'wait'
@@ -520,7 +584,7 @@ class Display:
         if key_ls:
             if 'q' in key_ls or 'Q' in key_ls:
                 self.exit(self.loop)
-            if 'No such server!' == key_ls[:-1] or 'Invalid command!' == key_ls[:-1] or 'refresh' == key_ls[:-1]:
+            if key_ls[:-1] in ['No such server!', 'Invalid command!', 'refresh']:
                 self.clear_input = True, key_ls[-1]
 
         # handle for non alphabet key press
@@ -561,7 +625,8 @@ class Display:
                     if screen.get_data_status == 'finish':
                         screen.get_data_status = 'call'
                         self.input.set_edit_text('')
-                    else: self.input.set_edit_text('Invalid: please wait for last refresh to be finished')
+                    else:
+                        self.input.set_edit_text('Invalid: please wait for last refresh to be finished')
                 elif 'restore' in text:
                     self.ovpn.dns_manager('restore')
                     self.input.set_edit_text('')
@@ -588,7 +653,8 @@ class Display:
                 if screen.get_data_status == 'finish':
                     screen.get_data_status = 'call'
                     self.input.set_edit_text('')
-                else: self.input.set_edit_text('Invalid: please wait for last refresh to be finished')
+                else:
+                    self.input.set_edit_text('Invalid: please wait for last refresh to be finished')
             elif key == 'ctrl r':
                 self.ovpn.dns_manager('restore')
                 self.input.set_edit_text('')
@@ -604,6 +670,7 @@ class Display:
         raise urwid.ExitMainLoop()
 
     def printf(self, txt):
+        # print a debug msg
         self.debug.set_text(str(txt))
 
     def make_GUI(self):
@@ -667,7 +734,7 @@ class Display:
         s_country, s_port = self.ovpn.cfg.filter.values()
         dns_fix, dns = self.ovpn.cfg.dns.values()
 
-        config_data = [use_proxy, dns_fix, s_country[0:4]+' '+s_port, sort_by]
+        config_data = [use_proxy, dns_fix, s_country[0:4] + ' ' + s_port, sort_by]
         labels = ['Proxy: ', 'DNS fix: ', 'Filter: ', 'Sort by: ']
         buttons = ['F2', 'F3', 'F4', 'F5']
         popup = [PopUpProxy, PopUpDNS, PopUpCountry, PopUpSortBy]
@@ -766,13 +833,14 @@ class Display:
                     ind += 1
             return
 
+        # create a footer template
         message = [urwid.Text(u' ', align='center') for i in range(3)]
         debug_mes = [urwid.Text(u' ') for i in range(20)]
         return urwid.Pile(message + debug_mes)
 
     def communicator(self, (msg, ovpn)):
         if msg:
-            msgs = 'successfully;'+repr(self.ovpn.vpn_server)
+            msgs = 'successfully;' + repr(self.ovpn.vpn_server)
             self.q2indicator.put(msgs)
         else:
             self.q2indicator.put('terminate')
@@ -783,29 +851,19 @@ class Display:
 
         logpath = self.ovpn.config_file[:-10] + 'vpn.log'
         if msg is None:
+            # backup last season log
             if os.path.exists(logpath):
-                call(['cp', '-f', logpath, logpath+'.old'])
+                call(['cp', '-f', logpath, logpath + '.old'])
+
+            # make new log file for current season
             with open(logpath, 'w+') as log:
                 log.writelines(['-' * 40 + '\n', time.asctime() + ': Vpngate with proxy is started\n'])
 
         else:
             with open(logpath, 'a+') as log:
-                if msg['debug'] != self.vpn_log and ' Pinging proxy... ' not in msg['debug']:
-                    ind = 0
-                    m = msg['debug'][ind]
-                    if self.vpn_log:
-                        while m != self.vpn_log[0]:
-                            ind += 1
-                            m = msg['debug'][ind]
-                        while ind > 0:
-                            ind -= 1
-                            m = msg['debug'][ind]
-                            self.vpn_log.appendleft(m)
-                            log.write(m + '\n')
-                    else:
-                        for m in list(msg['debug'])[::-1]:
-                            self.vpn_log.appendleft(m)
-                            log.write(m + '\n')
+                if ' Pinging proxy... ' not in msg['debug']:
+                    m = msg['debug'].pop()
+                    log.write(m + '\n')
 
     def run(self):
         self.loop.run()
@@ -817,10 +875,11 @@ class Display:
         else:
             self.ovpn.kill = True
 
+
 # ------------------------- Main  -----------------------------------
 vpn_connect = Connection()  # initiate network parameter
 
-# ------------------- check_dependencies: ---------------------------
+# check_dependencies:
 required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0}
 for module in ['pip', 'requests', 'urwid']:
     try:
