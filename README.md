@@ -16,7 +16,7 @@ you can test it by *$ ./vpn_indicator.py* after launching *vpnproxy_tui.py*
 * **resolvconf**: ```$ sudo apt-get install resolvconf```   Only if you use the version in 'old' directory
 * **python 2.7.x**: should already be shipped with your linux
 * **python-requests**: ```$ sudo apt-get install python-requests```
-* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid```Only if you use `tui` version (terminal user interface)
+* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` Only if you use `tui` version (terminal user interface)
 
 Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
 
