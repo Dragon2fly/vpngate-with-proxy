@@ -1,6 +1,8 @@
 # vpngate-with-proxy
-VPN GATE client for linux, be able to connect to open vpn server at http://www.vpngate.net/en/ through proxy
-by using python script. Auto add DNS to fix DNS leak. You can use this program with or without proxy.
+VPN GATE client for linux
+* Be able to connect to open vpn servers at **http://www.vpngate.net/en/** directly or through proxy
+* Auto add DNS to fix DNS leak.
+* Auto filter out dead VPN servers. (updated on August 16th)
 
 Work on debian based system. Tested on Ubuntu and Raspbian.
 
@@ -60,7 +62,7 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   It contains the "vpngate-with-proxy" folder. Extract it into anywhere you want eg: `$HOME`.
 
 ### 2. First run:
-  If you have configured **system wide proxy**, it'd better to **turn** it **off**. After vpn tunnel is established,
+  If you have configured **system wide proxy** or proxy in firefox, it'd better to **turn** it **off**. After vpn tunnel is established,
   the programs that use system wide proxy may failed to connect to the internet using your proxy.
 
   Launch vpngate-with-proxy by
@@ -79,13 +81,10 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
    - **vpnproxy_tui.py** has better UI, colorful and easier to use.
    - **vpnproxy_cli.py** is normal terminal application, lightweight and is aim to run on server (RaspberryPi ?)
 
-Then the program will first setup a configuration file `config.ini` by asking you for
-   - Do you need **proxy** to connect to the Internet
-   - How to *sort* the result descending (by **speed** or **ping** or **score**) or ascending  ()**up time**)
-   - Filter the result by what **country**
-   - Do you want to fix dns leak, which **dns** you want to use
-
-  With setting that has **default** option, you can just press Enter to choose it.
+Then the program will first setup a configuration file `config.ini` by asking you for **proxy** if needed to 
+connect to the Internet. After that it will show the default configuration of the program. 
+Change any parameter to suit you and press **Enter** to continue. 
+Next time launching this program, you won't see this configuration again. Either modify `config.ini` or check **5. Some notes**
 
   If no thing goes wrong, the vpn server's list will show up.
 
@@ -129,35 +128,37 @@ Then the program will first setup a configuration file `config.ini` by asking yo
 ### 4. After VPN Tunnel is established successfully:
   A successful connection doesn't mean you have access to the Internet. If you can access the Internet through selected vpn
 server, that doesn't mean you are totally safe.
-  1. Check if you can access the Internet:
-    * try browse some websites, if they are loaded, that's the good sign.
-    * or type `r` then Enter to see if it can fetch the new server list. This time, it will fetch data directly through vpn,
-   not using the configured proxy. If the server list is *refreshed* almost instantly, that's the good sign.
+  1. _Check if you can access the Internet_:
+    * try browse some websites. Low *score* VPN servers tend to block you out of the Internet  
 
-  If there is no good sign, choose another server.
-
-  2. Check DNS leak:
-  If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
+  2. _Check DNS leak_:
+  
+   If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
    unless you type IP address directly.
 
      To know your current DNS provider, https://www.dnsleaktest.com or https://ipleak.net
 
      * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
      * Connect to any VPN server and test if your dns provider is changed.
-
+  
   If DNS is not changed, make sure that you have turned off your system wide proxy and try again.
+  While using the ethernet for vpn, connected to wifi may reset your DNS.  
+  
+You could also use below command in Ubuntu to see trace route:
+  ```Shell
+  $ mtr -rw google.com
+  ```
 
 ### 5. Some notes:
   * To view or change settings before the program fetches server's list:
   ```Shell
-  ~/vpngate-with-proxy$ ./vpnproxy_tui.py config
+  $ ./vpnproxy_tui.py config
   ```
   
-  * (vpnproxy_cli.py only) To view or change settings at server's list: type **c** or **config** then Enter
+  * (vpnproxy_cli.py only) To view or change settings at server's list: type *Vpn command* **c** or **config** then Enter
 
   * **Ctrl+z**: Try not to press this combination while program is running. It will not terminate the vpn tunnel nor kill the program properly.
-   Which means iptable may be left messed up, DNS won't reset to original, you may be still in vpn.
-    You will lose access to the Internet soon.
+   Which means iptable may be left messed up, DNS won't reset to original, you may be **still in vpn**.
 
   * The program only shows the last log line at the bottom of terminal. In fact, there is 20 last lines of the log.
    To view these lines, you just need to extend the high of the terminal window.
@@ -179,12 +180,11 @@ server, that doesn't mean you are totally safe.
   3. `sudo iptables -F` to delete all changes to the iptable, then `$ sudo service network-manager restart`
   and do step 2 again.
 
-  If it still doesn't or your os doesn't have `network-manager`, restart your system.
+  Restart your system or reconnect to wifi or ethernet will also help.
   If it still doesn't, your proxy may be offline or `\etc\resolv.conf`'s content is incorrect.
   Ping your proxy from another computer to test. And double check `\etc\resolv.conf`
-
-
-
-
-
-
+  
+  If your network is behind a proxy, although the program has limited the number of socket connection per second,
+  there is a chance that your ip will be blocked because of spamming too many socket connection 
+  (to test if OpenVPN servers are still alive) during a short time, in other words, DDoS your proxy. 
+  Search in the source code for **test_interval** and increase it a little bit. 
