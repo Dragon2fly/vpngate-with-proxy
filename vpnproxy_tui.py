@@ -7,7 +7,7 @@ __version__ = "1.30"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
-import os
+import os, sys
 import base64
 import time
 import datetime
@@ -29,7 +29,7 @@ if euid != 0:
         with open('out.txt', 'w+') as f:
             Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1, )
 
-    args = ['sudo', sys.executable] + sys.argv + [os.environ]
+    args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
 
 # Threading
@@ -316,14 +316,14 @@ class Connection:
             sys.exit()
 
         self.sorted[:] = sort
-        self.messages['debug'].appendleft(' Sequence completed')
+        if len(sort) == 0:
+            self.messages['debug'].appendleft(' No thing to do!')
+        else:
+            self.messages['debug'].appendleft(' Sequence completed')
 
     def probe(self):
         """ Filter out fetched dead Vpn Servers
         """
-        if len(self.vpndict) == 0:
-            self.messages['debug'].appendleft(' No thing to do!')
-            return
 
         def is_alive(servers, queue):
             target = [(self.vpndict[name].ip, self.vpndict[name].port) for name in servers]
