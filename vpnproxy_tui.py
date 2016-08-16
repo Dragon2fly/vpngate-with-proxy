@@ -358,6 +358,7 @@ class Connection:
 
         while not my_queue.empty():
             dead_server = my_queue.get()
+            self.messages['debug'].appendleft(" Delete dead VPN server: "+dead_server)
             del self.vpndict[dead_server]
 
     def dns_manager(self, action='backup'):
