@@ -29,7 +29,7 @@ if euid != 0:
         with open('out.txt', 'w+') as f:
             Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1, )
 
-    args = ['sudo', sys.executable] + sys.argv + [os.environ]
+    args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
 
 # Threading
@@ -125,7 +125,7 @@ class Connection:
 
         # use for probing
         self.test_timeout = 2
-        self.test_interval = 0.2
+        self.test_interval = 0.25
 
         self.connected_servers = []
         self.messages = OrderedDict([('country', deque([' '], maxlen=1)),
@@ -165,28 +165,45 @@ class Connection:
 
     def first_config(self):
         print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
-
         self.cfg.proxy['use_proxy'] = 'no' if raw_input(
-            ctext('Do you need proxy to connect? ', 'B') + '[yes|no(default)]:') in 'no' else 'yes'
+            ctext('Do you need proxy to connect? ', 'B') + '(yes|[no]):') in 'no' else 'yes'
+
         if self.cfg.proxy['use_proxy'] == 'yes':
-            print ' Input your http proxy address and port without including "http://" \nsuch as ' \
-                  + ctext('www.abc.com:8080', 'pB')
-            while 1:
-                try:
-                    proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
-                    ip = socket.gethostbyname(proxy)
-                    port = port.strip()
-                    if not 0 <= int(port) <= 65535:
-                        raise ValueError
-                except ValueError:
-                    print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
-                    print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
-                    print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
-                else:
-                    self.cfg.proxy['address'] = proxy
-                    self.cfg.proxy['port'] = port
-                    self.cfg.proxy['ip'] = ip
-                    break
+            proxy = port = ip = ''
+            useit = 'no'
+
+            if "http_proxy" in os.environ:
+                proxy, port = os.environ['http_proxy'].split('//')[1].split(':')
+                ip = socket.gethostbyname(proxy)
+            elif "HTTP_PROXY" in os.environ:
+                proxy, port = os.environ['http_proxy'].split('//')[1].split(':')
+                ip = socket.gethostbyname(proxy)
+
+            if proxy:
+                print ' You are using proxy: '+ctext('%s:%s' % (proxy, port), 'pB')
+                useit = 'yes' if raw_input(
+                    ctext(' Use this proxy? ', 'B') + '([yes]|no):') in 'yes' else 'no'
+
+            if useit == 'no':
+                print ' Input your http proxy address and port without including "http://" \nsuch as ' \
+                      + ctext('www.abc.com:8080', 'pB')
+                while 1:
+                    try:
+                        proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
+                        ip = socket.gethostbyname(proxy)
+                        port = port.strip()
+                        if not 0 <= int(port) <= 65535:
+                            raise ValueError
+                    except ValueError:
+                        print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
+                        print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
+                        print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
+                    else:
+                        break
+
+            self.cfg.proxy['address'] = proxy
+            self.cfg.proxy['port'] = port
+            self.cfg.proxy['ip'] = ip
 
         get_input(self.cfg, 'config')
         print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
@@ -282,7 +299,7 @@ class Connection:
             self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port in port])
 
         # test alive
-        self.messages['debug'].appendleft(' Filtering out dead servers')
+        self.messages['debug'].appendleft(' Filtering out dead servers ...')
         self.probe()
 
         if self.sort_by == 'speed':
@@ -362,7 +379,7 @@ class Connection:
             dead_server = my_queue.get()
             del self.vpndict[dead_server]
 
-        self.messages['debug'].appendleft(" Deleted %d dead VPN servers: " % count)
+            self.messages['debug'].appendleft(' Filtering out dead servers ... [%d dead]' % count)
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
@@ -855,7 +872,7 @@ class Display:
             # write to log file
             if self.ovpn.verbose == 'yes':
                 with open(logpath, 'a+') as log:
-                    if m != ' Pinging proxy... ':
+                    if '... ' not in m:
                         log.write(m + '\n')
 
         ind = 0
@@ -923,7 +940,7 @@ if need:
         env['https_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
 
     update_now = 'yes' if 'n' in raw_input(
-        ctext("Have you 'sudo apt-get update' recently?", 'B') + "[ yes(default) | no]: ") else 'no'
+        ctext("Have you 'sudo apt-get update' recently?", 'B') + "([yes] | no): ") else 'no'
 
     if update_now == 'yes':
         call(['apt-get', 'update'], env=env)

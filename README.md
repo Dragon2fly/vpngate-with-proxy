@@ -46,18 +46,18 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
   ```
   
+  If your network is behind a proxy:
+  ```Shell
+    $ export http_proxy="http://your_proxy:your_port"
+    $ export https_proxy="https://your_proxy:your_port"
+    $ sudo -E apt-get install git
+    $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
+  ```
+  
   **OR**
   
   Download: https://github.com/Dragon2fly/vpngate-with-proxy/archive/master.zip
   It contains the "vpngate-with-proxy" folder. Extract it into anywhere you want eg: `$HOME`.
-
-  **If your network is behind a proxy**
-  ```Shell
-    $ export http_proxy="http://your_proxy:your_port"
-    $ export https_proxy="http://your_proxy:your_port"
-    $ sudo -E apt-get install git
-    $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
-  ```
 
 ### 2. First run:
   If you have configured **system wide proxy**, it'd better to **turn** it **off**. After vpn tunnel is established,
@@ -67,13 +67,19 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 
   ```Shell
   $ cd vpngate-with-proxy
-  ~/vpngate-with-proxy$ ./vpnproxy_tui.py
+  $ ./vpnproxy_tui.py
   ```
+  
+  or 
+  ```Shell
+  $ cd vpngate-with-proxy
+  $ ./vpnproxy_cli.py
+  ```
+  
+   - **vpnproxy_tui.py** has better UI, colorful and easier to use.
+   - **vpnproxy_cli.py** is normal terminal application, lightweight and is aim to run on server (RaspberryPi ?)
 
-  which will launch the terminal user interface version. If you don't want complicated, you can use **vpnproxy_cli.py**
-  instead.
-
-  Then the program will first setup a configuration file `config.ini` by asking you for
+Then the program will first setup a configuration file `config.ini` by asking you for
    - Do you need **proxy** to connect to the Internet
    - How to *sort* the result descending (by **speed** or **ping** or **score**) or ascending  ()**up time**)
    - Filter the result by what **country**

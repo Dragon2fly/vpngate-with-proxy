@@ -20,7 +20,7 @@ from subprocess import call, Popen, PIPE
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
-    args = ['sudo', sys.executable] + sys.argv + [os.environ]
+    args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
 
 # Define some mirrors of vpngate.net
@@ -220,7 +220,7 @@ def probe(vpndict):
         dead_server = my_queue.get()
         del vpndict[dead_server]
 
-    print(" Deleted %d dead VPN servers: " % count)
+    print(" Deleted %d dead VPN servers" % count)
 
 
 def dns_manager(action='backup', DNS='8.8.8.8'):
@@ -287,7 +287,7 @@ dropped_time = 0
 max_retry = 3
 
 # test if alive
-test_interval = 0.2
+test_interval = 0.25
 test_timeout = 1
 
 # get config file path
@@ -308,48 +308,45 @@ if os.path.exists(config_file):
 
 else:
     print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
-    print "If you don't know what to do, just press Enter to use default option\n"
+
     cfg.proxy['use_proxy'] = 'no' if raw_input(
-        ctext('Do you need proxy to connect? ', 'B') + '[yes|no(default)]:') in 'no' else 'yes'
+        ctext('Do you need proxy to connect? ', 'B') + '(yes|[no]):') in 'no' else 'yes'
     if cfg.proxy['use_proxy'] == 'yes':
-        print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
-        while 1:
-            try:
-                proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
-                ip = socket.gethostbyname(proxy)
-                port = port.strip()
-                if not 0 <= int(port) <= 65535:
-                    raise ValueError
-            except ValueError:
-                print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
-                print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
-                print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
-            else:
-                cfg.proxy['address'] = proxy
-                cfg.proxy['port'] = port
-                cfg.proxy['ip'] = ip
-                break
+        proxy = port = ip = ''
+        useit = 'no'
 
-    cfg.sort['key'] = raw_input(ctext('\nSort servers by ', 'B') + '[speed (default) | ping | score | up time]: ')
-    if cfg.sort['key'] not in ['speed', 'ping', 'score', 'up time']:
-        cfg.sort['key'] = 'speed'
+        if "http_proxy" in os.environ:
+            proxy, port = os.environ['http_proxy'].split('//')[1].split(':')
+            ip = socket.gethostbyname(proxy)
+        elif "HTTP_PROXY" in os.environ:
+            proxy, port = os.environ['http_proxy'].split('//')[1].split(':')
+            ip = socket.gethostbyname(proxy)
 
-    cfg.filter['country'] = raw_input(
-        ctext('\nFilter server by country ', 'B') + '[eg: all (default), jp, japan]: ')
-    if not cfg.filter['country']:
-        cfg.filter['country'] = 'all'
+        if proxy:
+            print ' You are using proxy: ' + ctext('%s:%s' % (proxy, port), 'pB')
+            useit = 'yes' if raw_input(
+                ctext(' Use this proxy? ', 'B') + '([yes]|no):') in 'yes' else 'no'
 
-    cfg.dns['fix_dns'] = 'yes' if raw_input(
-        ctext('\nFix DNS leaking ', 'B') + '[yes (default) | no] : ') in 'yes' else 'no'
-    if cfg.dns['fix_dns'] == 'yes':
-        cfg.dns['dns'] = raw_input(' DNS server or Enter to use 8.8.8.8 (google): ')
-    if not cfg.dns['dns']:
-        cfg.dns['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
+        if useit == 'no':
+            print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
+            while 1:
+                try:
+                    proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
+                    ip = socket.gethostbyname(proxy)
+                    port = port.strip()
+                    if not 0 <= int(port) <= 65535:
+                        raise ValueError
+                except ValueError:
+                    print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
+                    print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
+                    print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
+                else:
+                    break
+        cfg.proxy['address'] = proxy
+        cfg.proxy['port'] = port
+        cfg.proxy['ip'] = ip
 
-    cfg.openvpn['verbose'] = 'no' if 'n' in raw_input(
-        ctext('Write openvpn log? [yes (default)| no]: ', 'B')) else 'yes'
-
-    cfg.write()
+    get_input(cfg, 'config')
     print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
 # ------------------- check_dependencies: ----------------------
