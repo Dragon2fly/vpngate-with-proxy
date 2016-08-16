@@ -356,10 +356,13 @@ class Connection:
 
         for t in my_thread: t.join()
 
+        count = 0
         while not my_queue.empty():
+            count +=1
             dead_server = my_queue.get()
-            self.messages['debug'].appendleft(" Delete dead VPN server: "+dead_server)
             del self.vpndict[dead_server]
+
+        self.messages['debug'].appendleft(" Deleted %d dead VPN servers: " % count)
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'

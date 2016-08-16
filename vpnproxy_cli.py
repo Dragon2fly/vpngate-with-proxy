@@ -214,10 +214,13 @@ def probe(vpndict):
 
     for t in my_thread: t.join()
 
+    count = 0
     while not my_queue.empty():
+        count += 1
         dead_server = my_queue.get()
-        print 'Delete dead VPN server: ', dead_server
         del vpndict[dead_server]
+
+    print(" Deleted %d dead VPN servers: " % count)
 
 
 def dns_manager(action='backup', DNS='8.8.8.8'):
