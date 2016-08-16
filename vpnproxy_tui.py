@@ -123,7 +123,9 @@ class Connection:
         self.kill = False
         self.get_limit = 1
 
-        self.test_timeout = 2  # probing timeout
+        # use for probing
+        self.test_timeout = 2
+        self.test_interval = 0.2
 
         self.connected_servers = []
         self.messages = OrderedDict([('country', deque([' '], maxlen=1)),
@@ -220,20 +222,20 @@ class Connection:
             res2, err2 = Popen(ping_ip, stdout=PIPE, stderr=PIPE).communicate()
 
             if err1 and not err2:
-                self.messages['debug'][0] += '[failed]'
+                self.messages['debug'].appendleft(' Pinging proxy... [failed]')
                 self.messages['debug'].extendleft([" Warning: Cannot resolve proxy's hostname. Use last known IP"])
                 self.proxy = self.ip
             elif err1 and err2:
-                self.messages['debug'][0] += '[failed]'
+                self.messages['debug'].appendleft(' Pinging proxy... [failed]')
                 self.messages['debug'].appendleft('  Ping proxy got error: ' + err1)
                 self.messages['debug'].appendleft('  Check your proxy setting')
             elif not err1 and '100% packet loss' in res1:
-                self.messages['debug'][0] += '[dead]'
+                self.messages['debug'][0] += ' Pinging proxy... [dead]'
                 self.messages['debug'].appendleft(' Warning: Proxy not response to ping')
                 self.messages['debug'].appendleft(" Either proxy's security does not allow it to response to "
                                                   "ping packet or proxy itself is dead")
             else:
-                self.messages['debug'][0] += '[alive]'
+                self.messages['debug'].appendleft(' Pinging proxy... [alive]')
                 self.ip = socket.gethostbyname(self.proxy)
 
             proxies = {
@@ -312,8 +314,8 @@ class Connection:
                     s.settimeout(self.test_timeout)
                     s.connect((self.ip, int(self.port)))  # connect to proxy server
                     ip, port = target[i]
-                    DATA = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip, port)
-                    s.send(DATA)
+                    data = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip, port)
+                    s.send(data)
                     dead = False
                     try:
                         response = s.recv(100)
@@ -325,7 +327,7 @@ class Connection:
 
                     if dead or "200 Connection established" not in response:
                         queue.put(servers[i])
-                    time.sleep(0.25)    # avoid DDos your proxy
+                    time.sleep(self.test_interval)    # avoid DDos your proxy
 
             else:
                 for i in range(len(target)):
@@ -341,10 +343,10 @@ class Connection:
                     finally:
                         s.shutdown(socket.SHUT_RD)
                         s.close()
-                        # time.sleep(0.25)      # no need since we make connection to different server
+                        # time.sleep(self.test_interval)      # no need since we make connection to different servers
 
         my_queue = Queue()
-        chunk_len = 10
+        chunk_len = 10  # reduce chunk_len will increase number of thread
         my_chunk = [self.vpndict.keys()[i:i + chunk_len] for i in range(0, len(self.vpndict), chunk_len)]
         my_thread = []
         for chunk in my_chunk:
@@ -488,6 +490,7 @@ class Display:
 
         self.timer = 0
         self.cache_msg = None
+        self.cache_debug = deque(maxlen=20)
         self.index = 0
         self.ser_no = 16
         self.data_ls = ['']
@@ -822,39 +825,6 @@ class Display:
             self.ovpn.cfg.write()
 
     def status(self, msg=None):
-        self.logger(msg)
-        if msg:
-            ind = 0
-            for mtype in list(msg):
-                for m in msg[mtype]:
-                    if 'successfully' in m or 'dns' in m or 'complete' in m:
-                        self.state[ind].set_text(('attention', m))
-                    elif 'got error' in m:
-                        self.state[ind].set_text(('lost', m))
-                    elif 'Connecting' in m:
-                        self.state[ind].set_text(('attention2', m))
-                    else:
-                        self.state[ind].set_text(('normal', m))
-
-                    ind += 1
-            return
-
-        # create a footer template
-        message = [urwid.Text(u' ', align='center') for i in range(3)]
-        debug_mes = [urwid.Text(u' ') for i in range(20)]
-        return urwid.Pile(message + debug_mes)
-
-    def communicator(self, (msg, ovpn)):
-        if msg:
-            msgs = 'successfully;' + repr(self.ovpn.vpn_server)
-            self.q2indicator.put(msgs)
-        else:
-            self.q2indicator.put('terminate')
-
-    def logger(self, msg):
-        if self.ovpn.verbose == 'no':
-            return
-
         logpath = self.ovpn.config_file[:-10] + 'vpn.log'
         if msg is None:
             # backup last season log
@@ -865,11 +835,53 @@ class Display:
             with open(logpath, 'w+') as log:
                 log.writelines(['-' * 40 + '\n', time.asctime() + ': Vpngate with proxy is started\n'])
 
+            # create a footer template
+            message = [urwid.Text(u' ', align='center') for i in range(3)]
+            debug_mes = [urwid.Text(u' ') for i in range(20)]
+
+            return urwid.Pile(message + debug_mes)
+
+        while msg['debug']:
+            m = msg['debug'].pop()
+            if m.endswith('d]') or m.endswith('e]'):
+                self.cache_debug[0] = m
+            else:
+                self.cache_debug.appendleft(m)
+
+            # write to log file
+            if self.ovpn.verbose == 'yes':
+                with open(logpath, 'a+') as log:
+                    if m != ' Pinging proxy... ':
+                        log.write(m + '\n')
+
+        ind = 0
+        for mtype in list(msg)[:-1]:
+            for m in msg[mtype]:
+                if 'successfully' in m or 'dns' in m or 'complete' in m:
+                    self.state[ind].set_text(('attention', m))
+                elif 'got error' in m:
+                    self.state[ind].set_text(('lost', m))
+                elif 'Connecting' in m:
+                    self.state[ind].set_text(('attention2', m))
+                else:
+                    self.state[ind].set_text(('normal', m))
+
+                ind += 1
+
+        for m in self.cache_debug:
+            if 'complete' in m:
+                self.state[ind].set_text(('attention', m))
+            else:
+                self.state[ind].set_text(('normal', m))
+
+            ind += 1
+
+    def communicator(self, (msg, ovpn)):
+        if msg:
+            msgs = 'successfully;' + repr(self.ovpn.vpn_server)
+            self.q2indicator.put(msgs)
         else:
-            with open(logpath, 'a+') as log:
-                if ' Pinging proxy... ' not in msg['debug']:
-                    m = msg['debug'].pop()
-                    log.write(m + '\n')
+            self.q2indicator.put('terminate')
 
     def run(self):
         self.loop.run()
