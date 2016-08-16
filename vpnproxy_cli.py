@@ -13,6 +13,8 @@ import base64
 import time
 import datetime
 from config import *
+from Queue import Queue
+from threading import Thread
 from subprocess import call, Popen, PIPE
 
 # Get sudo privilege
@@ -126,6 +128,7 @@ def get_data():
 
 def refresh_data():
     # fetch data from vpngate.net
+    print "fetching data"
     vpnlist = get_data()
 
     if s_country != 'all':
@@ -134,6 +137,9 @@ def refresh_data():
                                      + vpn[1].country_short.lower())])
     if s_port != 'all':
         vpnlist = dict([vpn for vpn in vpnlist.items() if vpn[1].port == s_port])
+
+    print "Filtering out dead VPN..."
+    probe(vpnlist)
 
     if sort_by == 'speed':
         sort = sorted(vpnlist.keys(), key=lambda x: vpnlist[x].speed, reverse=True)
@@ -149,6 +155,69 @@ def refresh_data():
         sys.exit()
 
     return sort, vpnlist
+
+
+def probe(vpndict):
+    """ Filter out fetched dead Vpn Servers
+    """
+
+    def is_alive(servers, queue):
+        global ip, port  # of proxy
+        target = [(vpndict[name].ip, vpndict[name].port) for name in servers]
+
+        if use_proxy == 'yes':
+            for i in range(len(target)):
+                s = socket.socket()
+                s.settimeout(test_timeout)
+                s.connect((ip, int(port)))  # connect to proxy server
+                ip_, port_ = target[i]
+                data = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip_, port_)
+                s.send(data)
+                dead = False
+                try:
+                    response = s.recv(100)
+                except socket.timeout:
+                    dead = True
+
+                s.shutdown(socket.SHUT_RD)
+                s.close()
+
+                if dead or "200 Connection established" not in response:
+                    queue.put(servers[i])
+                time.sleep(test_interval)  # avoid DDos your proxy
+
+        else:
+            for i in range(len(target)):
+                s = socket.socket()
+                s.settimeout(test_timeout)
+                ip, port = target[i]
+                try:
+                    s.connect((ip, port))
+                except socket.timeout:
+                    queue.put(servers[i])
+                except Exception as e:
+                    print e
+                    queue.put(servers[i])
+                finally:
+                    s.shutdown(socket.SHUT_RD)
+                    s.close()
+                    # time.sleep(self.test_interval)      # no need since we make connection to different servers
+
+    my_queue = Queue()
+    chunk_len = 10  # reduce chunk_len will increase number of thread
+    my_chunk = [vpndict.keys()[i:i + chunk_len] for i in range(0, len(vpndict), chunk_len)]
+    my_thread = []
+    for chunk in my_chunk:
+        t = Thread(target=is_alive, args=(chunk, my_queue))
+        t.start()
+        my_thread.append(t)
+
+    for t in my_thread: t.join()
+
+    while not my_queue.empty():
+        dead_server = my_queue.get()
+        print 'Delete dead VPN server: ', dead_server
+        del vpndict[dead_server]
 
 
 def dns_manager(action='backup', DNS='8.8.8.8'):
@@ -213,6 +282,10 @@ def vpn_manager(ovpn):
 # anti dropping
 dropped_time = 0
 max_retry = 3
+
+# test if alive
+test_interval = 0.2
+test_timeout = 1
 
 # get config file path
 path = os.path.realpath(sys.argv[0])
