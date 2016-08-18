@@ -119,7 +119,7 @@ class Connection:
         self.vpn_server = None
         self.vpn_process = None
         self.vpn_queue = None
-        self.connect_status = False
+        self.is_connected = False
         self.kill = False
         self.get_limit = 1
 
@@ -180,7 +180,7 @@ class Connection:
                 ip = socket.gethostbyname(proxy)
 
             if proxy:
-                print ' You are using proxy: '+ctext('%s:%s' % (proxy, port), 'pB')
+                print ' You are using proxy: '+ctext('%s:%s' % (proxy, port), 'bB')
                 useit = 'yes' if raw_input(
                     ctext(' Use this proxy? ', 'B') + '([yes]|no):') in 'yes' else 'no'
 
@@ -322,10 +322,10 @@ class Connection:
             self.messages['debug'].appendleft(' Sequence completed')
 
     def probe(self):
-        """ Filter out fetched dead Vpn Servers
-        """
+        """ Filter out fetched dead Vpn Servers """
 
         def is_alive(servers, queue):
+            """ Worker for threading"""
             target = [(self.vpndict[name].ip, self.vpndict[name].port) for name in servers]
 
             if self.use_proxy == 'yes':
@@ -410,10 +410,8 @@ class Connection:
         out.close()
 
     def vpn_connect(self, chosen):
-        """
-        Disconnect the current connection and spawn a new one
-        """
-        if self.connect_status:
+        """ Disconnect the current connection and spawn a new one """
+        if self.is_connected:
             self.vpn_cleanup()
 
         server = self.vpndict[self.sorted[chosen]]
@@ -439,7 +437,7 @@ class Connection:
         if p.poll() is None:
             p.send_signal(signal.SIGINT)
             p.wait()
-        self.connect_status = False
+        self.is_connected = False
         self.dns_manager('restore')
 
         # make sure openvpn did close its device
@@ -466,7 +464,7 @@ class Connection:
         """
         p, q = self.vpn_process, self.vpn_queue
 
-        if self.kill and self.connect_status:
+        if self.kill and self.is_connected:
             self.kill = False
             self.vpn_cleanup()
             self.messages['status'] += ['VPN tunnel is terminated', '']
@@ -482,8 +480,8 @@ class Connection:
                 self.dropped_time = 0
                 self.dns_manager('change')
                 self.messages['status'] += ['VPN tunnel established successfully', 'Ctrl+C to quit VPN']
-                self.connect_status = True
-            elif self.connect_status and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
+                self.is_connected = True
+            elif self.is_connected and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
                 self.dropped_time += 1
                 self.messages['status'][1] = 'Vpn has restarted %s time(s)' % self.dropped_time
             elif 'Restart pause, ' in line or 'Cannot resolve' in line or 'Connection timed out' in line or 'SIGTERM' in line:
@@ -496,7 +494,7 @@ class Connection:
             elif '--http-proxy MUST' in line:
                 self.messages['status'] += ['Can\'t use udp with proxy!', ' ']
 
-            elif p.poll() is None and not self.connect_status:
+            elif p.poll() is None and not self.is_connected:
                 if 0 < self.dropped_time <= self.max_retry:
                     self.messages['status'][0] = 'Connecting...'
                 else:
@@ -560,13 +558,14 @@ class Display:
         # indicator
         self.q2indicator = Queue()
         self.qfindicator = Queue()
-
-        self.infoserver = InfoServer(8088)
-        self.indicator = Thread(target=self.infoserver.run, args=(self.q2indicator, self.qfindicator))
-        self.indicator.daemon = True
+        
+        # should run on a thread so that it won't delay/block urwid
+        self.infoclient = InfoClient(8088)
+        self.indicator = Thread(target=self.infoclient.check_io, args=(self.q2indicator, self.qfindicator))
+        self.indicator.daemon = True    # client doesn't block port, it can die with main safely
         self.indicator.start()
-        self.sent = False
-        self.last_msg = ''
+        self.prev_status = False
+        # self.last_msg = ''
 
     def get_vpn_data(self):
         del self.data_ls[:]
@@ -594,11 +593,11 @@ class Display:
         if self.clear_input:
             self.input.set_edit_text(self.clear_input[1])
             self.clear_input = False
-
-        if self.ovpn.connect_status != self.sent:
-            self.sent = self.ovpn.connect_status
-            self.communicator((self.sent, ''))
-
+        
+        # send/recv information to/from indicator
+        self.communicator()
+        
+        # refresh the terminal screen
         if self.cache_msg != self.ovpn.messages:
             self.status(self.ovpn.messages)
             self.cache_msg = deepcopy(self.ovpn.messages)
@@ -609,7 +608,7 @@ class Display:
     def signal_handler(self, signum, frame):
         self.ovpn.kill = True
         self.printf("Ctrl C is pressed. Press again or 'q' to quit program")
-        if not self.ovpn.connect_status:
+        if not self.ovpn.is_connected:
             raise urwid.ExitMainLoop()
 
     def input_handler(self, Edit, key_ls=None):
@@ -900,12 +899,22 @@ class Display:
 
             ind += 1
 
-    def communicator(self, (msg, ovpn)):
-        if msg:
-            msgs = 'successfully;' + repr(self.ovpn.vpn_server)
-            self.q2indicator.put(msgs)
-        else:
-            self.q2indicator.put('terminate')
+    def communicator(self):
+        # send info
+        if self.ovpn.is_connected != self.prev_status:
+            self.prev_status = self.ovpn.is_connected
+            if self.prev_status:
+                msgs = 'successfully;' + repr(self.ovpn.vpn_server)
+                self.infoclient.send(msgs)
+            else:
+                self.infoclient.send('terminate')
+
+        # receive cmd
+        try:
+            cmd = self.qfindicator.get_nowait()
+            self.printf('Indicator told: ' + cmd)
+        except Empty:
+            pass
 
     def run(self):
         self.loop.run()

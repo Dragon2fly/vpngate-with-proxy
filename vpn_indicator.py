@@ -1,10 +1,10 @@
 #!/usr/bin/env python 
 # -*- coding: utf-8 -*-
-import select
-
 __author__ = 'duc_tin'
 
-from Queue import Empty
+from Queue import Empty, Queue
+from threading import Thread
+import select
 import signal, os
 import socket, errno
 import time
@@ -21,112 +21,167 @@ except ImportError:
 class InfoServer:
     def __init__(self, port):
         self.host = 'localhost'
-        self.data_payload = 2048     # buffer
-        self.backlog = 1
-        self.client = None
-        self.state = False
-
         self.port = port
+        self.buffer = 2048  # buffer
+        self.backlog = 1
+
+        self.is_listening = False
+        self.is_connected = False
+        self.client = None
+
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_address = self.host, self.port
+
         self.last_msg = ''
 
-    def wait_client(self):
-        self.client, address = self.sock.accept()
-        self.client.send('Hi')
-        self.client.sendall(self.last_msg)
+        self.readlist = [self.sock]  # use for select
 
-    def run(self, q_in, q_out):
-        # print 'starting server at %s:%s' % server_address
-        self.sock.bind(self.server_address)
-        self.sock.listen(self.backlog)
+    def listen(self):
+        try:
+            self.sock.bind(self.server_address)
+            self.sock.listen(self.backlog)
+            print 'listening'
 
-        # wait forever for an incoming connection from indicator
-        self.client, address = self.sock.accept()   # this line is not really necessary but just leave it there
+            return True
+        except socket.errno, e:
+            print e
+            return False
 
+    def check_io(self, q_info, q_cmd):
+        """Receive information about vpn tunnel
+            :type q_info: Queue
+            :type q_cmd: Queue
+        """
         while True:
+
+            # try to bind the socket
+            while not self.is_listening:
+                self.is_listening = self.listen()
+                time.sleep(2)
+
+            # normal select protocol, timeout 0.5 sec
+            readable, _, _ = select.select(self.readlist, [], [], 0.5)
+            for s in readable:
+                if s is self.sock:  # incoming connection
+                    self.client, addrr = self.sock.accept()
+                    self.readlist.append(self.client)
+                    self.is_connected = True
+                    print 'Server: Connected with %s:%s' % addrr
+                    q_info.put('connected')
+
+                else:  # client sent something
+                    try:
+
+                        data = self.client.recv(self.buffer)
+                        if data:
+                            print 'main sent: ', data
+                        else:
+                            self.is_connected = False
+                            self.readlist.remove(self.client)
+                            print 'main disconnected'
+
+                        q_info.put(data)
+
+                    except socket.error as e:
+                        print 'Client die unexpectedly'
+                        self.is_connected = False
+
+            # get cmd from indicator without blocking
             try:
-                ready = select.select([self.client], [], [], 1)
-                if ready[0]:
-                    data = self.client.recv(self.data_payload)
-                    if 'close' in data:
-                        self.client.close()
-                        self.wait_client()
-
-                info = q_in.get_nowait()
-                self.client.sendall(info)
-                self.last_msg = info
+                cmd = q_cmd.get_nowait()
+                if 'dead' in cmd:
+                    print 'dead signal received'
+                    self.sock.shutdown(socket.SHUT_RDWR)
+                    self.sock.close()
+                    return 0
+                else:
+                    self.send(cmd)
             except Empty:
-                time.sleep(1)
-            except socket.errno, e:
-                self.wait_client()
-            except IOError as e:
-                if e.errno == errno.EPIPE:
-                    self.wait_client()
-            except Exception as e:
-                print 'unkown', str(e)
+                pass
 
-    def stop(self):
-        self.client.close()
+    def send(self, msg):
+        if self.is_connected:
+            self.client.sendall(msg)
+            return True
+        else:
+            return False
 
 
 class InfoClient:
     def __init__(self, port):
-        self.port = port
         self.host = 'localhost'
-        self.data_payload = 2048     # buffer
+        self.port = port
+
+        self.buffer = 2048  # buffer
         self.sock = socket.socket()
         self.server_address = self.host, port
-        self.state = False
+        self.is_connected = False
+
+        self.last_msg = ''
 
     def connect(self):
-        # print 'connect to %s:%s' % server_address
-        try:
-            self.sock = socket.create_connection(self.server_address)
-            print 'socket: connected'
-            return True
-        except socket.error, e:
-            print str(e)
+        while not self.is_connected:
+            try:
+                self.sock = socket.create_connection(self.server_address)
+                # print 'socket: connected'
+                self.is_connected = True
 
-    def get_data(self):
-        if not self.check_alive():
-            self.state = False
-            return 'Offline'
-        elif not self.state:
-            self.state = True
-            return 'connected'
+                # update current status
+                if self.last_msg:
+                    self.send(self.last_msg)
 
-        data = ''
-        try:
-            ready = select.select([self.sock], [], [], 1)
-            if ready[0]:
-                data = self.sock.recv(self.data_payload)
-        except socket.errno, e:
-            print 'Socket error: ' + str(e)
-        except Exception, e:
-            print 'program error: '+ str(e)
+            except socket.error, e:
+                # print str(e)
+                time.sleep(2)
 
-        return data
+    def check_io(self, q_info, q_cmd):
+        """Receive information about vpn tunnel
+            :type q_info: Queue, may not needed, we could send info directly
+            :type q_cmd: Queue
+        """
+        while True:
 
-    def check_alive(self):
-        try:
-            self.sock.send('hello')
-            return True
-        except socket.error, e:
-            if 'Broken pipe' in e or 'Bad file descriptor' in e:
-                print 'server die'
-                self.sock.close()
-                return self.connect()
+            if self.is_connected:
+                # check if there is cmd from indicator
+                readable, _, _ = select.select([self.sock], [], [], 0.5)
+                try:
+
+                    data = self.sock.recv(self.buffer)
+                    if data:
+                        # print data
+                        q_cmd.put(data)
+                    else:
+                        self.is_connected = False
+                        # print 'server die'
+
+                except socket.error as e:
+                    print 'Server die unexpectedly'
+                    self.is_connected = False
             else:
-                print 'Socket error: ' + str(e)
+                self.connect()
+
+    def send(self, msg):
+        self.last_msg = msg
+        if self.is_connected:
+            try:
+                self.sock.sendall(msg)
+                return True
+            except socket.error:
+                return False
+        else:
+            return False
 
 
 class VPNIndicator:
-    def __init__(self, tcp_client):
+    def __init__(self, q_info, q_cmd):
         signal.signal(signal.SIGINT, self.handler)
         signal.signal(signal.SIGTERM, self.handler)
-        self.tcpClient = tcp_client
+
+        # pipe for send/recv data to tcp server
+        self.q_info = q_info
+        self.q_cmd = q_cmd
+
         self.APPINDICATOR_ID = 'myappindicator'
         self.icon1 = os.path.abspath('connected.svg')
         self.icon2 = os.path.abspath('connectnot.svg')
@@ -146,7 +201,6 @@ class VPNIndicator:
         self.notifier.set_timeout(2)
 
         notify.init(self.APPINDICATOR_ID)
-        self.run()
 
     def run(self, *args):
         GLib.timeout_add(2000, self.callback, *args)
@@ -170,16 +224,30 @@ class VPNIndicator:
                 self.indicator.set_icon(self.icon2)
                 self.status('', ["Offline"])
                 self.hang = True
+            elif 'main exit' in data_in:
+                self.quit()
 
         return True
 
     def build_menu(self):
         menu = Gtk.Menu()
 
-        item_joke = Gtk.MenuItem('VPN Status')
-        item_joke.connect('activate', self.status, self.last_recv)
-        menu.append(item_joke)
+        # show status popup
+        current_status = Gtk.MenuItem('VPN Status')
+        current_status.connect('activate', self.status, self.last_recv)
+        menu.append(current_status)
 
+        # connect to the next vpn on the list
+        next_vpn = Gtk.MenuItem('Next VPN')
+        next_vpn.connect('activate', self.send_cmd, 'next')
+        menu.append(next_vpn)
+
+        # connect to the next vpn on the list
+        stop_vpn = Gtk.MenuItem('Stop VPN')
+        stop_vpn.connect('activate', self.send_cmd, 'stop')
+        menu.append(stop_vpn)
+
+        # quit button
         item_quit = Gtk.MenuItem('Quit')
         item_quit.connect('activate', self.handler, '')
         menu.append(item_quit)
@@ -187,17 +255,20 @@ class VPNIndicator:
         menu.show_all()
         return menu
 
-    def quit(self, source):
+    def quit(self, source=None):
+        # send dead signal to tcp server
+        self.q_cmd.put('dead')
         notify.uninit()
         Gtk.main_quit()
 
-    def status(self, _, messages=[0]):
+    def status(self, menu_obj, messages=''):
         """
 
         :type messages: list
         """
-        if _:
-            messages = self.last_recv
+        if not messages:
+            messages = ['unknown']
+
         self.notifier.close()
 
         if 'connected' in messages[0]:
@@ -207,12 +278,12 @@ class VPNIndicator:
             print messages[1:]
             summary = 'VPN tunnel established'
             body = '''
-            %s \t             %s
-            Ping: \t\t\t%s             \tSpeed : \t%s Mbps
-            Up time:\t\t%s             \tSeason: \t%s
-            Log: \t\t\t%s
-            Score: \t\t\t%s
-            Protocol: \t\t%s           \tPortal: \t%s
+            %s \t           %s
+            Ping: \t\t%s             \tSpeed :   %s Mbps
+            Up time:\t%s             \tSeason:   %s
+            Log: \t\t%s
+            Score: \t\t%s
+            Protocol: \t%s           \tPortal:   %s
             ''' % tuple(messages[1:])
         elif 'terminate' in messages[0]:
             summary = 'VPN tunnel has broken'
@@ -227,17 +298,30 @@ class VPNIndicator:
     def handler(self, signal_num, frame):
         print 'interrupt now'
         self.quit('')
-        try:
-            self.tcpClient.sock.send('close')
-            self.tcpClient.sock.close()
-        except socket.error:
-            pass
+
+    def send_cmd(self, menu_obj, arg):
+        print 'indicator sent:', arg
+        self.q_cmd.put(arg)
 
     def callback(self):
-        data = self.tcpClient.get_data()
-        self.reload(data)
+
+        try:
+            data = self.q_info.get_nowait()
+            self.reload(data)
+        except Empty:
+            pass
+
         return True
 
+
 if __name__ == '__main__':
-    me = InfoClient(8088)
-    indicator = VPNIndicator(me)
+    # queue for interacting between indicator and server
+    a, b = Queue(), Queue()
+
+    server = InfoServer(8088)
+    t = Thread(target=server.check_io, args=(a, b))     # shouldn't be daemon
+    t.start()
+
+    indicator = VPNIndicator(a, b)
+    indicator.run()
+    t.join()
