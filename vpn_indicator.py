@@ -27,6 +27,7 @@ class InfoServer:
 
         self.is_listening = False
         self.is_connected = False
+        self.is_dead = False
         self.client = None
 
         self.sock = socket.socket()
@@ -48,10 +49,9 @@ class InfoServer:
             print e
             return False
 
-    def check_io(self, q_info, q_cmd):
+    def check_io(self, q_info):
         """Receive information about vpn tunnel
             :type q_info: Queue
-            :type q_cmd: Queue
         """
         while True:
 
@@ -60,15 +60,21 @@ class InfoServer:
                 self.is_listening = self.listen()
                 time.sleep(2)
 
-            # normal select protocol, timeout 0.5 sec
-            readable, _, _ = select.select(self.readlist, [], [], 0.5)
+            # normal select protocol
+            readable, _, _ = select.select(self.readlist, [], [])
             for s in readable:
-                if s is self.sock:  # incoming connection
-                    self.client, addrr = self.sock.accept()
-                    self.readlist.append(self.client)
-                    self.is_connected = True
-                    print 'Server: Connected with %s:%s' % addrr
-                    q_info.put('connected')
+                if s is self.sock:
+
+                    if self.is_dead:
+                        print 'Server: Received dead signal'
+                        self.sock.close()
+                        return 0
+                    else:
+                        self.client, addrr = self.sock.accept()
+                        self.readlist.append(self.client)
+                        self.is_connected = True
+                        print 'Server: Connected with %s:%s' % addrr
+                        q_info.put('connected')
 
                 else:  # client sent something
                     try:
@@ -87,23 +93,17 @@ class InfoServer:
                         print 'Client die unexpectedly'
                         self.is_connected = False
 
-            # get cmd from indicator without blocking
-            try:
-                cmd = q_cmd.get_nowait()
-                if 'dead' in cmd:
-                    print 'dead signal received'
-                    self.sock.shutdown(socket.SHUT_RDWR)
-                    self.sock.close()
-                    return 0
-                else:
-                    self.send(cmd)
-            except Empty:
-                pass
-
     def send(self, msg):
-        if self.is_connected:
-            self.client.sendall(msg)
-            return True
+        if msg == 'dead':
+            self.is_dead = True
+            self.sock.shutdown(socket.SHUT_RDWR)
+
+        elif self.is_connected:
+            try:
+                self.client.sendall(msg)
+                return True
+            except socket.error:
+                return False
         else:
             return False
 
@@ -135,16 +135,15 @@ class InfoClient:
                 # print str(e)
                 time.sleep(2)
 
-    def check_io(self, q_info, q_cmd):
+    def check_io(self, q_cmd):
         """Receive information about vpn tunnel
-            :type q_info: Queue, may not needed, we could send info directly
             :type q_cmd: Queue
         """
         while True:
 
             if self.is_connected:
                 # check if there is cmd from indicator
-                readable, _, _ = select.select([self.sock], [], [], 0.5)
+                readable, _, _ = select.select([self.sock], [], [])
                 try:
 
                     data = self.sock.recv(self.buffer)
@@ -174,13 +173,13 @@ class InfoClient:
 
 
 class VPNIndicator:
-    def __init__(self, q_info, q_cmd):
+    def __init__(self, q_info, sender):
         signal.signal(signal.SIGINT, self.handler)
         signal.signal(signal.SIGTERM, self.handler)
 
         # pipe for send/recv data to tcp server
         self.q_info = q_info
-        self.q_cmd = q_cmd
+        self.send = sender
 
         self.APPINDICATOR_ID = 'myappindicator'
         self.icon1 = os.path.abspath('connected.svg')
@@ -239,12 +238,12 @@ class VPNIndicator:
 
         # connect to the next vpn on the list
         next_vpn = Gtk.MenuItem('Next VPN')
-        next_vpn.connect('activate', self.send_cmd, 'next')
+        next_vpn.connect('activate', self.send, 'next')
         menu.append(next_vpn)
 
         # connect to the next vpn on the list
         stop_vpn = Gtk.MenuItem('Stop VPN')
-        stop_vpn.connect('activate', self.send_cmd, 'stop')
+        stop_vpn.connect('activate', self.send, 'stop')
         menu.append(stop_vpn)
 
         # quit button
@@ -257,7 +256,7 @@ class VPNIndicator:
 
     def quit(self, source=None):
         # send dead signal to tcp server
-        self.q_cmd.put('dead')
+        self.send('dead')
         notify.uninit()
         Gtk.main_quit()
 
@@ -266,8 +265,8 @@ class VPNIndicator:
 
         :type messages: list
         """
-        if not messages:
-            messages = ['unknown']
+        if not messages and menu_obj:
+            messages = self.last_recv
 
         self.notifier.close()
 
@@ -296,12 +295,12 @@ class VPNIndicator:
         self.notifier.show()
 
     def handler(self, signal_num, frame):
-        print 'interrupt now'
+        print 'Indicator: quit now'
         self.quit('')
 
     def send_cmd(self, menu_obj, arg):
-        print 'indicator sent:', arg
-        self.q_cmd.put(arg)
+        print 'Indicator sent:', arg
+        self.send(arg)
 
     def callback(self):
 
@@ -316,12 +315,12 @@ class VPNIndicator:
 
 if __name__ == '__main__':
     # queue for interacting between indicator and server
-    a, b = Queue(), Queue()
+    q = Queue()
 
     server = InfoServer(8088)
-    t = Thread(target=server.check_io, args=(a, b))     # shouldn't be daemon
+    t = Thread(target=server.check_io, args=(q,))     # shouldn't be daemon
     t.start()
 
-    indicator = VPNIndicator(a, b)
+    indicator = VPNIndicator(q, server.send)
     indicator.run()
     t.join()
