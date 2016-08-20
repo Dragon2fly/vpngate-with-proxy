@@ -187,7 +187,7 @@ class VPNIndicator:
         self.icon3 = os.path.abspath('connecting.gif')
         self.hang = False
 
-        self.last_recv = ''
+        self.last_recv = ['']
         self.indicator = appindicator.Indicator.new(self.APPINDICATOR_ID, self.icon2,
                                                     appindicator.IndicatorCategory.APPLICATION_STATUS)
 
@@ -238,12 +238,12 @@ class VPNIndicator:
 
         # connect to the next vpn on the list
         next_vpn = Gtk.MenuItem('Next VPN')
-        next_vpn.connect('activate', self.send, 'next')
+        next_vpn.connect('activate', self.send_cmd, 'next')
         menu.append(next_vpn)
 
         # connect to the next vpn on the list
         stop_vpn = Gtk.MenuItem('Stop VPN')
-        stop_vpn.connect('activate', self.send, 'stop')
+        stop_vpn.connect('activate', self.send_cmd, 'stop')
         menu.append(stop_vpn)
 
         # quit button
@@ -265,7 +265,8 @@ class VPNIndicator:
 
         :type messages: list
         """
-        if not messages and menu_obj:
+
+        if menu_obj:
             messages = self.last_recv
 
         self.notifier.close()
@@ -275,21 +276,27 @@ class VPNIndicator:
             body = ''
         elif 'successfully' in messages[0]:
             print messages[1:]
+            tags = ['Ping:', 'Speed:', 'Up time:', 'Season:', 'Log:', 'Score:', 'Protocol:', 'Portal:']
+            msg = messages[1:3] + [item for items in zip(tags, messages[3:9]) for item in items]
             summary = 'VPN tunnel established'
+
             body = '''
-            %s \t           %s
-            Ping: \t\t%s             \tSpeed :   %s Mbps
-            Up time:\t%s             \tSeason:   %s
-            Log: \t\t%s
-            Score: \t\t%s
-            Protocol: \t%s           \tPortal:   %s
-            ''' % tuple(messages[1:])
+            {:<20} {:<15}
+            {:<20} {:<15}   {:>20} {:<20}
+            {:<20} {:<15}   {:>20} {:<20}
+            {:<20} {:<15}
+            {:<20} {:<15}
+            '''.format(*msg)
+
         elif 'terminate' in messages[0]:
             summary = 'VPN tunnel has broken'
             body = 'Please choose a different server and try again'
         elif 'Offline' in messages[0]:
             summary = 'VPN program is offline'
             body = "Click VPN indicator and choose 'Quit' to quit"
+        else:
+            summary = 'Status unknown'
+            body = "Waiting for connection from main program"
 
         self.notifier.update(summary, body, icon=None)
         self.notifier.show()

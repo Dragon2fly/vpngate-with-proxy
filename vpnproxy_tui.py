@@ -507,6 +507,7 @@ class Display:
         :type vpn_connection: Connection
         """
         self.ovpn = vpn_connection
+        self.chosen = -1
         self.get_data = Thread(target=self.ovpn.refresh_data)
         self.get_data_status = 'finish'
 
@@ -561,7 +562,7 @@ class Display:
         
         # should run on a thread so that it won't delay/block urwid
         self.infoclient = InfoClient(8088)
-        self.indicator = Thread(target=self.infoclient.check_io, args=(self.q2indicator, self.qfindicator))
+        self.indicator = Thread(target=self.infoclient.check_io, args=(self.qfindicator,))
         self.indicator.daemon = True    # client doesn't block port, it can die with main safely
         self.indicator.start()
         self.prev_status = False
@@ -611,6 +612,14 @@ class Display:
         if not self.ovpn.is_connected:
             raise urwid.ExitMainLoop()
 
+    def connect2vpn(self):
+        if self.chosen < len(self.data_ls):
+            self.index = (self.chosen // self.ser_no) * self.ser_no
+            self.ovpn.vpn_connect(self.chosen)
+            return True
+        else:
+            return False
+
     def input_handler(self, Edit, key_ls=None):
         # handle for self.input (Edit) on the fly
         if key_ls:
@@ -643,10 +652,8 @@ class Display:
                     self.input.set_edit_text('')
 
                 elif text.isdigit():
-                    chosen = int(text)
-                    if chosen < len(self.data_ls):
-                        self.index = (chosen // self.ser_no) * self.ser_no
-                        self.ovpn.vpn_connect(chosen)
+                    self.chosen = int(text)
+                    if self.connect2vpn():
                         self.input.set_edit_text('')
                         self.update_GUI()
                     else:
@@ -913,6 +920,19 @@ class Display:
         try:
             cmd = self.qfindicator.get_nowait()
             self.printf('Indicator told: ' + cmd)
+
+            if cmd == 'next':
+                self.chosen += 1
+                if not self.connect2vpn():
+                    if screen.get_data_status == 'finish':
+                        screen.get_data_status = 'call'
+                        self.connect2vpn()
+
+            if cmd == 'stop':
+                self.ovpn.kill = True
+
+            self.update_GUI()
+
         except Empty:
             pass
 
