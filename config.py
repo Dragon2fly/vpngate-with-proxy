@@ -46,7 +46,7 @@ def get_input(s, option):
         return
 
     while 1:
-        use_proxy, proxy, port, ip, sort_by, s_country, s_port, fix_dns, dns, verbose, mirrors = s[:]
+        use_proxy, proxy, port, ip, sort_by, s_country, s_port, s_score, fix_dns, dns, verbose, mirrors = s[:]
         mirrors = mirrors.split(', ')
 
         print ctext('\n Current settings:', 'B')
@@ -54,10 +54,11 @@ def get_input(s, option):
         print ctext('    3. Use proxy:', 'yB'), use_proxy
         print ctext('    4. Sort servers by:', 'yB'), sort_by
         print ctext('    5. Country filter:', 'yB'), s_country, ctext('\t\t6. VPN server\'s port: ', 'yB'), s_port
-        print ctext('    7. Fix dns leaking:', 'yB'), fix_dns
-        print ctext('    8. DNS list: ', 'yB'), dns
-        print ctext('    9. Show openvpn log:', 'B'), verbose
-        print ctext('   10. VPN gate\'s mirrors:', 'yB'), '%s ...' % mirrors[1]
+        print ctext('    7. Minimum score:', 'yB'), s_score
+        print ctext('    8. Fix dns leaking:', 'yB'), fix_dns
+        print ctext('    9. DNS list: ', 'yB'), dns
+        print ctext('   10. Show openvpn log:', 'B'), verbose
+        print ctext('   11. VPN gate\'s mirrors:', 'yB'), '%s ...' % mirrors[1]
 
         user_input = raw_input('\nCommand or just Enter to continue: ')
         if user_input == '':
@@ -98,12 +99,19 @@ def get_input(s, option):
             s.filter['port'] = user_input if user_input else 'all'
 
         elif user_input == '7':
+            user_input = 'abc'
+            while not user_input.strip().isdigit():
+                user_input = raw_input('Minimum score of servers (eg: 200000): ')
+                if not user_input or 'all' == user_input: break
+            s.filter['score'] = user_input if user_input else 'all'
+
+        elif user_input == '8':
             while user_input.lower() not in ['y', 'n', 'yes', 'no']:
                 user_input = raw_input('Fix DNS:')
             else:
                 s.dns['fix_dns'] = 'no' if user_input in 'no' else 'yes'
 
-        elif user_input == '8':
+        elif user_input == '9':
             print 'Default DNS are 8.8.8.8, 84.200.69.80, 208.67.222.222'
             user_input = '@'
             while not re.match('[a-zA-Z0-9., ]*$', user_input.strip()):
@@ -113,22 +121,23 @@ def get_input(s, option):
             else:
                 s.dns['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
 
-        elif user_input == '9':
+        elif user_input == '10':
             while user_input.lower() not in ['y', 'n', 'yes', 'no']:
                 user_input = raw_input('Show openvpn log: ')
             else:
                 s.openvpn['verbose'] = 'no' if user_input in 'no' else 'yes'
 
-        elif user_input == '10':
+        elif user_input == '11':
             while True:
                 user_input = "abc"
                 print ctext('\n Current VPNGate\'s mirrors:', 'B')
                 for ind, url in enumerate(mirrors):
                     print ' ', ind, url
 
-                print '\nType ' + ctext("add %s", 'B') + ' or ' + ctext("del %d", 'B') + ' to add or delete mirror \n' \
-                                                                                         '  where %s is a mirror\'s url and %d is index number of a mirror' \
-                                                                                         '\n  Or just Enter to leave it intact'
+                print '\nType ' + ctext("add %s", 'B') + ' or ' + ctext("del %d", 'B') + \
+                      ' to add or delete mirror \n' \
+                      '  where %s is a mirror\'s url and %d is index number of a mirror' \
+                      '\n  Or just Enter to leave it intact'
 
                 while user_input.lower()[0:3] not in ("add", "del", ""):
                     user_input = raw_input("\033[1mYour command: \033[0m")

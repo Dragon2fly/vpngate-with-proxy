@@ -144,7 +144,7 @@ def refresh_data():
             vpnlist = dict([vpn for vpn in vpnlist.items() if vpn[1].port in s_port])
 
     if s_score != 'all':
-        vpnlist = dict([vpn for vpn in vpnlist.items() if int(vpn[1].score) > s_score])
+        vpnlist = dict([vpn for vpn in vpnlist.items() if int(vpn[1].score) > int(s_score)])
 
     print "Filtering out dead VPN..."
     probe(vpnlist)
