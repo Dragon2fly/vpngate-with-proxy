@@ -10,8 +10,6 @@ __email__ = "nguyenbaduc.tin@gmail.com"
 import urwid
 import re
 
-# -----------------------------------------------here we go-------------------------------------------------------------
-
 
 class MyText(urwid.Text):
     signals = ['click']
@@ -113,8 +111,9 @@ class PopUpCountry(urwid.WidgetWrap):
         info = urwid.Text("'ESC' to clear, leave blank or 'all' for all country and port", 'center')
         self.country = urwid.Edit(('attention', u' \N{BULLET} Country: '), edit_text=value[0], wrap='clip')
         self.port = urwid.Edit(('attention', u' \N{BULLET} Port   : '), edit_text=value[1], wrap='clip')
+        self.score = urwid.Edit(('attention', u' \N{BULLET} Score >: '), edit_text=value[2], wrap='clip')
         exit_but = urwid.Padding(urwid.Button('OKay'.center(8), self.item_callback), 'center', 12)
-        filter_ = [urwid.AttrMap(wid, None, 'popbgs') for wid in (self.country, self.port, exit_but)]
+        filter_ = [urwid.AttrMap(wid, None, 'popbgs') for wid in (self.country, self.port, self.score, exit_but)]
 
         self.pile = urwid.Pile([info]+filter_)
         fill = urwid.LineBox(urwid.Filler(self.pile))
@@ -125,17 +124,24 @@ class PopUpCountry(urwid.WidgetWrap):
     def item_callback(self, Button, data=None):
         country = self.country.edit_text
         port = self.port.edit_text
+        score = self.score.edit_text
+
         if not country:
             self.country.set_edit_text('all')
             country = 'all'
         if not port:
             self.port.set_edit_text('all')
             port = 'all'
-            self._emit("close")
-
-        elif port != 'all' and not set(port) <= set(' 0123456789'):
+        elif port != 'all' and not set(port) <= set(' <>0123456789'):
             self.port.set_edit_text('Invalid number!')
             return
+        elif port[0] == ' ':
+            self.port.set_edit_text('Invalid number!')
+            return
+        elif ('<' in port or '>' in port) and port[0].isdigit():
+            self.port.set_edit_text('Invalid number!')
+            return
+
         else:
             for p in re.findall(r'\d+', port):
                 if p == 'Invalid number!': return
@@ -143,7 +149,14 @@ class PopUpCountry(urwid.WidgetWrap):
                     self.port.set_edit_text('Invalid number!')
                     return
 
-        self.chosen = country, port
+        if not score:
+            self.score.set_edit_text('all')
+            score = 'all'
+        elif score != 'all' and not set(score) <= set('0123456789'):
+            self.score.set_edit_text('Invalid number!')
+            return
+
+        self.chosen = country, port, score
         self._emit("close")
 
     def keypress(self, size, key):

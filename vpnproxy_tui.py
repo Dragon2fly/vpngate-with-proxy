@@ -283,7 +283,7 @@ class Connection:
         else:
             self.messages['debug'].appendleft(' Fetching servers completed %s' % success)
 
-    def refresh_data(self, resort_only=''):
+    def refresh_data(self, resort_only=False):
         if not resort_only:
             # fetch data from vpngate.net
             self.get_data()
@@ -295,11 +295,21 @@ class Connection:
                                               + vpn[1].country_short.lower())])
         if self.filters['port'] != 'all':
             port = self.filters['port']
-            self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port in port])
+            if port[0] == '>':
+                self.vpndict = dict([vpn for vpn in self.vpndict.items() if int(vpn[1].port) > int(port[1:])])
+            elif port[0] == '<':
+                self.vpndict = dict([vpn for vpn in self.vpndict.items() if int(vpn[1].port) < int(port[1:])])
+            else:
+                self.vpndict = dict([vpn for vpn in self.vpndict.items() if vpn[1].port in port])
+
+        if self.filters['score'] != 'all':
+            score = int(self.filters['score'])
+            self.vpndict = dict([vpn for vpn in self.vpndict.items() if int(vpn[1].score) > score])
 
         # test alive
-        self.messages['debug'].appendleft(' Filtering out dead servers ...')
-        self.probe()
+        if not resort_only:
+            self.messages['debug'].appendleft(' Filtering out dead servers ...')
+            self.probe()
 
         if self.sort_by == 'speed':
             sort = sorted(self.vpndict.keys(), key=lambda x: self.vpndict[x].speed, reverse=True)
@@ -381,7 +391,7 @@ class Connection:
             dead_server = my_queue.get()
             del self.vpndict[dead_server]
 
-            self.messages['debug'].appendleft(' Filtering out dead servers ... [%d dead]' % count)
+        self.messages['debug'].appendleft(' Filtering out dead servers ... [%d dead]' % count)
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
@@ -771,15 +781,16 @@ class Display:
     def setting(self, key=None):
         use_proxy, proxy, port, ip = self.ovpn.cfg.proxy.values()
         sort_by = self.ovpn.cfg.sort['key']
-        s_country, s_port = self.ovpn.cfg.filter.values()
+        s_country, s_port, s_score = self.ovpn.cfg.filter.values()
         dns_fix, dns = self.ovpn.cfg.dns.values()
+        # s_score = '200000'
 
         config_data = [use_proxy, dns_fix, s_country[0:4] + ' ' + s_port, sort_by]
         labels = ['Proxy: ', 'DNS fix: ', 'Filter: ', 'Sort by: ']
         buttons = ['F2', 'F3', 'F4', 'F5']
         popup = [PopUpProxy, PopUpDNS, PopUpCountry, PopUpSortBy]
-        param = [(use_proxy, proxy, port), (dns_fix, dns), (s_country, s_port), sort_by]
-        pop_size = [(0, 1, 39, 6), (0, 1, 35, 5), (0, 1, 35, 7), (7, 1, 12, 6)]
+        param = [(use_proxy, proxy, port), (dns_fix, dns), (s_country, s_port, s_score), sort_by]
+        pop_size = [(0, 1, 39, 6), (0, 1, 35, 5), (0, 1, 35, 8), (7, 1, 12, 6)]
 
         if not key:
             txt_labels = []
@@ -818,6 +829,7 @@ class Display:
             elif key == 'f4':
                 self.ovpn.filters['country'] = config_data[index] = self.sets.contents[index][0].result[0]
                 self.ovpn.filters['port'] = self.sets.contents[index][0].result[1]
+                self.ovpn.filters['score'] = self.sets.contents[index][0].result[2]
                 s_c_p = self.ovpn.filters['country'][0:4] + ' ' + self.ovpn.filters['port'][0:4]
                 self.ovpn.reload()
                 self.ovpn.cfg.write()
@@ -838,8 +850,6 @@ class Display:
                 tex = [('button', buttons[index]), ('attention', labels[index]), config_data[index]]
                 self.sets[index].set_text(tex)
                 self.get_data_status = 'callresort'
-                self.input.set_edit_text('refresh')
-                self.input.set_edit_pos(len('refresh'))
 
             elif key == 'f10':
                 yn = self.ovpn.verbose

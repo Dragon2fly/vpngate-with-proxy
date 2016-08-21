@@ -165,7 +165,7 @@ class Setting:
 
         self.sort = {'key': 'score'}
 
-        self.filter = OrderedDict([('country', 'all'), ('port', 'all')])
+        self.filter = OrderedDict([('country', 'all'), ('port', 'all'), ('score', 'all')])
 
         self.dns = OrderedDict([('fix_dns', 'yes'),
                                 ('dns', '8.8.8.8, 8.8.8.8, 84.200.69.80, 208.67.222.222')])
