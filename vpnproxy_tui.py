@@ -26,8 +26,7 @@ if euid != 0:
 
     if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
         print 'Launch vpn_indicator'
-        with open('out.txt', 'w+') as f:
-            Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1, )
+        Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1, )
 
     args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
     os.execlpe('sudo', *args)
@@ -119,7 +118,7 @@ class Connection:
         self.vpn_server = None
         self.vpn_process = None
         self.vpn_queue = None
-        self.is_connected = False
+        self.is_connected = 0   # 0: not, 1: connecting, 2: connected
         self.kill = False
         self.get_limit = 1
 
@@ -412,7 +411,9 @@ class Connection:
     def vpn_connect(self, chosen):
         """ Disconnect the current connection and spawn a new one """
         if self.is_connected:
-            self.vpn_cleanup()
+            self.vpn_cleanup(1)
+        else:
+            self.is_connected = 1
 
         server = self.vpndict[self.sorted[chosen]]
         self.vpn_server = server
@@ -432,12 +433,12 @@ class Connection:
         self.vpn_process = p
         self.vpn_queue = q
 
-    def vpn_cleanup(self):
+    def vpn_cleanup(self, status_code=0):
         p, q = self.vpn_process, self.vpn_queue
         if p.poll() is None:
             p.send_signal(signal.SIGINT)
             p.wait()
-        self.is_connected = False
+        self.is_connected = status_code
         self.dns_manager('restore')
 
         # make sure openvpn did close its device
@@ -480,7 +481,7 @@ class Connection:
                 self.dropped_time = 0
                 self.dns_manager('change')
                 self.messages['status'] += ['VPN tunnel established successfully', 'Ctrl+C to quit VPN']
-                self.is_connected = True
+                self.is_connected = 2
             elif self.is_connected and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
                 self.dropped_time += 1
                 self.messages['status'][1] = 'Vpn has restarted %s time(s)' % self.dropped_time
@@ -910,11 +911,13 @@ class Display:
         # send info
         if self.ovpn.is_connected != self.prev_status:
             self.prev_status = self.ovpn.is_connected
-            if self.prev_status:
+            if self.prev_status == 2:
                 msgs = 'successfully;' + repr(self.ovpn.vpn_server)
-                self.infoclient.send(msgs)
+            elif self.prev_status == 1:
+                msgs = 'connecting'
             else:
-                self.infoclient.send('terminate')
+                msgs = 'terminate'
+            self.infoclient.send(msgs)
 
         # receive cmd
         try:

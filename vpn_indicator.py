@@ -185,8 +185,10 @@ class VPNIndicator:
         self.APPINDICATOR_ID = 'myappindicator'
         self.icon1 = os.path.abspath('connected.svg')
         self.icon2 = os.path.abspath('connectnot.svg')
-        self.icon3 = os.path.abspath('connecting.gif')
+        self.icon345 = [os.path.abspath(icon) for icon in ['connecting1.svg','connecting2.svg','connecting3.svg']]
         self.hang = False
+        self.is_connecting = False
+        self.icon_th = 0
 
         self.last_recv = ['']
         self.indicator = appindicator.Indicator.new(self.APPINDICATOR_ID, self.icon2,
@@ -203,14 +205,29 @@ class VPNIndicator:
         notify.init(self.APPINDICATOR_ID)
 
     def run(self, *args):
-        GLib.timeout_add(2000, self.callback, *args)
+        GLib.timeout_add(1000, self.callback, *args)
+        GLib.timeout_add(700, self.blinking)
         Gtk.main()
+
+    def blinking(self):
+        if self.is_connecting:
+            if self.icon_th == 3:
+                self.icon_th = 0
+            self.indicator.set_icon(self.icon345[self.icon_th])
+            self.icon_th += 1
+        return True
 
     def reload(self, data_in):
         if data_in:
             print data_in[:12]
 
             self.last_recv = data_in.split(';')
+            if 'connecting' in data_in:
+                print 'set blinking'
+                self.is_connecting = True
+            else:
+                self.is_connecting = False
+
             if 'connected' in data_in:
                 self.hang = False
                 self.status('', self.last_recv)
@@ -227,7 +244,7 @@ class VPNIndicator:
             elif 'main exit' in data_in:
                 self.quit()
 
-        return True
+        # return True
 
     def build_menu(self):
         menu = Gtk.Menu()
@@ -302,7 +319,6 @@ class VPNIndicator:
             {:<22}{:<15}
             {:<21}{:<15}
             '''.format(*msg)
-
         elif 'terminate' in messages[0]:
             summary = 'VPN tunnel has broken'
             body = 'Please choose a different server and try again'
@@ -313,7 +329,7 @@ class VPNIndicator:
             summary = 'Status unknown'
             body = "Waiting for connection from main program"
 
-        self.notifier.update(summary, '<span foreground="blue" size="100" font_family="monospace">'+body+'</span>', icon=None)
+        self.notifier.update(summary, body, icon=None)
         self.notifier.show()
 
     def handler(self, signal_num, frame):
@@ -325,7 +341,6 @@ class VPNIndicator:
         self.send(arg)
 
     def callback(self):
-
         try:
             data = self.q_info.get_nowait()
             self.reload(data)

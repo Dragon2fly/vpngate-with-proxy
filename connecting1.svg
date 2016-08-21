@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="80"
+   height="50"
+   viewBox="0 0 80 50"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="connecting1.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="7.9195959"
+     inkscape:cx="84.113423"
+     inkscape:cy="26.970175"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1054"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     units="px"
+     showguides="true"
+     inkscape:guide-bbox="true" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-1002.3622)">
+    <g
+       transform="translate(2.8547873e-7,988.0911)"
+       inkscape:label="Layer 1"
+       id="layer1-5">
+      <rect
+         ry="6.0864224"
+         y="19.955412"
+         x="0.6826973"
+         height="38.452801"
+         width="78.634605"
+         id="rect4399"
+         style="fill:#f9f9f9;fill-opacity:0.72701153;stroke:#e6e6e6;stroke-width:0.91084433;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <text
+         transform="scale(0.89165236,1.1215133)"
+         sodipodi:linespacing="100%"
+         id="text3440"
+         y="47.536331"
+         x="5.7742138"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:33.36177444px;line-height:100%;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#999999;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="47.536331"
+           x="5.7742138"
+           id="tspan3442"
+           sodipodi:role="line">VPN</tspan></text>
+    </g>
+    <path
+       style="fill:#000000"
+       d="M 13.169174,38.387585 C 12.214011,35.205491 5.3862574,11.929608 5.3862574,11.855539 c 0,-0.06827 0.8214702,-0.09721 2.7455357,-0.09672 l 2.7455359,6.95e-4 2.805121,9.843055 c 1.542816,5.413679 2.84294,9.943501 2.889165,10.066269 0.08022,0.213051 0.08763,0.215084 0.162863,0.04464 0.04335,-0.09821 1.306554,-4.497768 2.807121,-9.776786 1.500566,-5.279018 2.769652,-9.728795 2.820191,-9.888393 l 0.09189,-0.290179 2.760933,0 c 1.518514,0 2.760933,0.01261 2.760933,0.02803 0,0.01542 -1.099886,3.762068 -2.444192,8.325893 -1.344305,4.563825 -3.142296,10.677867 -3.995536,13.586761 l -1.551343,5.288897 -3.317197,0.0013 -3.317196,0.0013 -0.180905,-0.602678 z"
+       id="path3501"
+       inkscape:connector-curvature="0"
+       transform="translate(0,1002.3622)" />
+  </g>
+</svg>
