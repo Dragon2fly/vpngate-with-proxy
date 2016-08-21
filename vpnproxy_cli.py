@@ -228,7 +228,7 @@ def probe(vpndict):
         dead_server = my_queue.get()
         del vpndict[dead_server]
 
-    print(" Deleted %d dead VPN servers" % count)
+    print 'Deleted %d dead servers out of %d' % (count, len(vpndict))
 
 
 def dns_manager(action='backup', DNS='8.8.8.8'):

@@ -391,7 +391,7 @@ class Connection:
             dead_server = my_queue.get()
             del self.vpndict[dead_server]
 
-        self.messages['debug'].appendleft(' Filtering out dead servers ... [%d dead]' % count)
+        self.messages['debug'].appendleft(' Filtering out dead servers ... [%d/%d dead]' % (count, len(self.vpndict)))
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
