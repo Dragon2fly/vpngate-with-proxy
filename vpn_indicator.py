@@ -4,6 +4,7 @@ __author__ = 'duc_tin'
 
 from Queue import Empty, Queue
 from threading import Thread
+from subprocess import call
 import select
 import signal, os
 import socket, errno
@@ -231,6 +232,13 @@ class VPNIndicator:
     def build_menu(self):
         menu = Gtk.Menu()
 
+        # change focus to main program terminal
+        focus_main = Gtk.MenuItem('Show main')
+        focus_main.connect('activate', self.change_focus)
+        menu.append(focus_main)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
         # show status popup
         current_status = Gtk.MenuItem('VPN Status')
         current_status.connect('activate', self.status, self.last_recv)
@@ -241,10 +249,14 @@ class VPNIndicator:
         next_vpn.connect('activate', self.send_cmd, 'next')
         menu.append(next_vpn)
 
+        menu.append(Gtk.MenuItem())
+
         # connect to the next vpn on the list
         stop_vpn = Gtk.MenuItem('Stop VPN')
         stop_vpn.connect('activate', self.send_cmd, 'stop')
         menu.append(stop_vpn)
+
+        menu.append(Gtk.SeparatorMenuItem())
 
         # quit button
         item_quit = Gtk.MenuItem('Quit indicator')
@@ -259,6 +271,9 @@ class VPNIndicator:
         self.send('dead')
         notify.uninit()
         Gtk.main_quit()
+
+    def change_focus(self, menu_obj):
+        call(['wmctrl', '-a', 'vpngate-with-proxy'])
 
     def status(self, menu_obj, messages=''):
         """
