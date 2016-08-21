@@ -247,7 +247,7 @@ class VPNIndicator:
         menu.append(stop_vpn)
 
         # quit button
-        item_quit = Gtk.MenuItem('Quit')
+        item_quit = Gtk.MenuItem('Quit indicator')
         item_quit.connect('activate', self.handler, '')
         menu.append(item_quit)
 
@@ -281,11 +281,11 @@ class VPNIndicator:
             summary = 'VPN tunnel established'
 
             body = '''
-            {:<20} {:<15}
-            {:<20} {:<15}   {:>20} {:<20}
-            {:<20} {:<15}   {:>20} {:<20}
-            {:<20} {:<15}
-            {:<20} {:<15}
+            {:<20}{:<15}    {:>19} {:<15}
+            {:<18} {:<8} Mbps
+            {:<18}{:<15}   {:>20} {:<20}
+            {:<22}{:<15}
+            {:<21}{:<15}
             '''.format(*msg)
 
         elif 'terminate' in messages[0]:
@@ -298,7 +298,7 @@ class VPNIndicator:
             summary = 'Status unknown'
             body = "Waiting for connection from main program"
 
-        self.notifier.update(summary, body, icon=None)
+        self.notifier.update(summary, '<span foreground="blue" size="100" font_family="monospace">'+body+'</span>', icon=None)
         self.notifier.show()
 
     def handler(self, signal_num, frame):
