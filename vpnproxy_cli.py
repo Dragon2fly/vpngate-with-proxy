@@ -136,7 +136,15 @@ def refresh_data():
                         if re.search(r'\b%s\b' % s_country, vpn[1].country_long.lower() + ' '
                                      + vpn[1].country_short.lower())])
     if s_port != 'all':
-        vpnlist = dict([vpn for vpn in vpnlist.items() if vpn[1].port == s_port])
+        if port[0] == '>':
+            vpnlist = dict([vpn for vpn in vpnlist.items() if int(vpn[1].port) > int(s_port[1:])])
+        elif port[0] == '<':
+            vpnlist = dict([vpn for vpn in vpnlist.items() if int(vpn[1].port) < int(s_port[1:])])
+        else:
+            vpnlist = dict([vpn for vpn in vpnlist.items() if vpn[1].port in s_port])
+
+    if s_score != 'all':
+        vpnlist = dict([vpn for vpn in vpnlist.items() if int(vpn[1].score) > s_score])
 
     print "Filtering out dead VPN..."
     probe(vpnlist)
@@ -353,7 +361,7 @@ else:
 mirrors.extend(cfg.mirror['url'].split(', '))
 use_proxy, proxy, port, ip = cfg.proxy.values()
 sort_by = cfg.sort.values()[0]
-s_country, s_port = cfg.filter.values()
+s_country, s_port, s_score = cfg.filter.values()
 dns_fix, dns = cfg.dns.values()
 verbose = cfg.openvpn.values()[0]
 
