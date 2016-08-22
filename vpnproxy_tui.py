@@ -389,7 +389,7 @@ class Connection:
         for t in my_thread: t.join()
 
         count = 0
-        total = self.vpndict
+        total = len(self.vpndict)
         while not my_queue.empty():
             count +=1
             dead_server = my_queue.get()
