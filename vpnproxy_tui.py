@@ -118,7 +118,7 @@ class Connection:
         self.vpn_server = None
         self.vpn_process = None
         self.vpn_queue = None
-        self.is_connected = 0   # 0: not, 1: connecting, 2: connected
+        self.is_connected = 0  # 0: not, 1: connecting, 2: connected
         self.kill = False
         self.get_limit = 1
 
@@ -179,7 +179,7 @@ class Connection:
                 ip = socket.gethostbyname(proxy)
 
             if proxy:
-                print ' You are using proxy: '+ctext('%s:%s' % (proxy, port), 'bB')
+                print ' You are using proxy: ' + ctext('%s:%s' % (proxy, port), 'bB')
                 useit = 'yes' if raw_input(
                     ctext(' Use this proxy? ', 'B') + '([yes]|no):') in 'yes' else 'no'
 
@@ -262,28 +262,35 @@ class Connection:
         else:
             proxies = {'no': 'pass',}
 
-        my_queue = Queue()
-        my_thread = []
-        for url in mirrors[0:self.get_limit]:
-            t = Thread(target=self.get_csv, args=(url, my_queue, proxies))
-            t.start()
-            my_thread.append(t)
+        i = 0
+        while i < len(mirrors):
+            my_queue = Queue()
+            my_thread = []
+            for url in mirrors[i: i + self.get_limit]:
+                t = Thread(target=self.get_csv, args=(url, my_queue, proxies))
+                t.start()
+                my_thread.append(t)
 
-        for t in my_thread: t.join()
+            for t in my_thread: t.join()
 
-        success = 0
-        self.vpndict.clear()
-        for res in [my_queue.get() for r in xrange(self.get_limit)]:
-            success += res[0]
-            self.vpndict.update(res[1])
+            success = 0
+            self.vpndict.clear()
+            for res in [my_queue.get() for r in xrange(self.get_limit)]:
+                success += res[0]
+                self.vpndict.update(res[1])
 
-        if not success:
+            if success:
+                break
+            else:
+                i += self.get_limit
+
+        else:
             self.messages['debug'].appendleft(' Failed to get VPN servers data\n '
                                               'Check your network setting and proxy')
             return False
-        else:
-            self.messages['debug'].appendleft(' Fetching servers completed %s' % success)
-            return True
+
+        self.messages['debug'].appendleft(' Fetching servers completed %s' % success)
+        return True
 
     def refresh_data(self, resort_only=False):
         if not resort_only:
@@ -359,7 +366,7 @@ class Connection:
 
                     if dead or "200 Connection established" not in response:
                         queue.put(servers[i])
-                    time.sleep(self.test_interval)    # avoid DDos your proxy
+                    time.sleep(self.test_interval)  # avoid DDos your proxy
 
             else:
                 for i in range(len(target)):
@@ -391,7 +398,7 @@ class Connection:
         count = 0
         total = len(self.vpndict)
         while not my_queue.empty():
-            count +=1
+            count += 1
             dead_server = my_queue.get()
             del self.vpndict[dead_server]
 
@@ -574,11 +581,11 @@ class Display:
         # indicator
         self.q2indicator = Queue()
         self.qfindicator = Queue()
-        
+
         # should run on a thread so that it won't delay/block urwid
         self.infoclient = InfoClient(8088)
         self.indicator = Thread(target=self.infoclient.check_io, args=(self.qfindicator,))
-        self.indicator.daemon = True    # client doesn't block port, it can die with main safely
+        self.indicator.daemon = True  # client doesn't block port, it can die with main safely
         self.indicator.start()
         self.prev_status = False
         # self.last_msg = ''
@@ -609,10 +616,10 @@ class Display:
         if self.clear_input:
             self.input.set_edit_text(self.clear_input[1])
             self.clear_input = False
-        
+
         # send/recv information to/from indicator
         self.communicator()
-        
+
         # refresh the terminal screen
         if self.cache_msg != self.ovpn.messages:
             self.status(self.ovpn.messages)
