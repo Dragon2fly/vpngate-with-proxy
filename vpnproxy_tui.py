@@ -280,13 +280,16 @@ class Connection:
         if not success:
             self.messages['debug'].appendleft(' Failed to get VPN servers data\n '
                                               'Check your network setting and proxy')
+            return False
         else:
             self.messages['debug'].appendleft(' Fetching servers completed %s' % success)
+            return True
 
     def refresh_data(self, resort_only=False):
         if not resort_only:
             # fetch data from vpngate.net
-            self.get_data()
+            if not self.get_data():
+                return
 
         if self.filters['country'] != 'all':
             name = self.filters['country']
@@ -386,12 +389,13 @@ class Connection:
         for t in my_thread: t.join()
 
         count = 0
+        total = self.vpndict
         while not my_queue.empty():
             count +=1
             dead_server = my_queue.get()
             del self.vpndict[dead_server]
 
-        self.messages['debug'].appendleft(' Filtering out dead servers ... [%d/%d dead]' % (count, len(self.vpndict)))
+        self.messages['debug'].appendleft(' Filtering out dead servers ... [%d/%d dead]' % (count, total))
 
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
