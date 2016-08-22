@@ -505,6 +505,7 @@ class Connection:
                 self.is_connected = 2
             elif self.is_connected and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:
                 self.dropped_time += 1
+                self.is_connected = 1
                 self.messages['status'][1] = 'Vpn has restarted %s time(s)' % self.dropped_time
             elif 'Restart pause, ' in line or 'Cannot resolve' in line or 'Connection timed out' in line or 'SIGTERM' in line:
                 self.dropped_time = 0
