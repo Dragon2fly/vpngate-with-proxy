@@ -17,6 +17,7 @@ try:
 except ImportError:
     print 'Lack of Gtk related modules!'
     print 'VPN indicator will not run!'
+    print 'You should try "sudo apt-get install gir1.2-appindicator3-0.1"'
 
 
 class InfoServer:
@@ -206,7 +207,7 @@ class VPNIndicator:
 
     def run(self, *args):
         GLib.timeout_add(1000, self.callback, *args)
-        GLib.timeout_add(700, self.blinking)
+        GLib.timeout_add(500, self.blinking)
         Gtk.main()
 
     def blinking(self):
@@ -268,9 +269,14 @@ class VPNIndicator:
 
         menu.append(Gtk.MenuItem())
 
-        # connect to the next vpn on the list
+        # stop vpn
         stop_vpn = Gtk.MenuItem('Stop VPN')
         stop_vpn.connect('activate', self.send_cmd, 'stop')
+        menu.append(stop_vpn)
+
+        # reconnect the current one
+        stop_vpn = Gtk.MenuItem('ReConnect')
+        stop_vpn.connect('activate', self.send_cmd, 'reconnect')
         menu.append(stop_vpn)
 
         menu.append(Gtk.SeparatorMenuItem())

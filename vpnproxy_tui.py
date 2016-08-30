@@ -956,6 +956,10 @@ class Display:
             if cmd == 'stop':
                 self.ovpn.kill = True
 
+            if cmd == 'reconnect':
+                self.chosen = max(self.chosen,0)
+                self.connect2vpn()
+
             self.update_GUI()
 
         except Empty:
