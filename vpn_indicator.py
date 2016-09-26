@@ -352,7 +352,11 @@ class VPNIndicator:
             self.reload(data)
         except Empty:
             pass
-
+        except Exception as e:
+            with open('indicator.log','w+') as log:
+                log.write(str(e))
+                self.notifier.update("Error", str(e), icon=None)
+                self.notifier.show()
         return True
 
 

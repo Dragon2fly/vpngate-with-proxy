@@ -375,12 +375,12 @@ class Connection:
                     ip, port = target[i]
                     try:
                         s.connect((ip, port))
+                        s.shutdown(socket.SHUT_RD)
                     except socket.timeout:
                         queue.put(servers[i])
                     except Exception as e:
                         queue.put(servers[i])
                     finally:
-                        s.shutdown(socket.SHUT_RD)
                         s.close()
                         # time.sleep(self.test_interval)      # no need since we make connection to different servers
 
