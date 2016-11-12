@@ -200,7 +200,7 @@ def probe(vpndict):
                 s.settimeout(test_timeout)
                 ip, port = target[i]
                 try:
-                    s.connect((ip, port))
+                    s.connect((ip, int(port)))
                     s.shutdown(socket.SHUT_RD)
                 except socket.timeout:
                     queue.put(servers[i])
