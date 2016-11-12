@@ -172,10 +172,11 @@ class Connection:
             useit = 'no'
 
             if "http_proxy" in os.environ:
-                proxy, port = os.environ['http_proxy'].split('//')[1].split(':')
+                proxy, port = os.environ['http_proxy'].strip('/').split('//')[1].split(':')
+
                 ip = socket.gethostbyname(proxy)
             elif "HTTP_PROXY" in os.environ:
-                proxy, port = os.environ['http_proxy'].split('//')[1].split(':')
+                proxy, port = os.environ['http_proxy'].strip('/').split('//')[1].split(':')
                 ip = socket.gethostbyname(proxy)
 
             if proxy:
