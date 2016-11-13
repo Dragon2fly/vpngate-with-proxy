@@ -4,20 +4,34 @@ __author__ = 'duc_tin'
 
 from Queue import Empty, Queue
 from threading import Thread
-from subprocess import call
+from subprocess import call, Popen, PIPE
 import select
-import signal, os
+import signal, os, sys
 import socket, errno
 import time
+import platform
+
+if 'buntu' in platform.platform() and \
+        not Popen(['pgrep', '-f', 'python vpn_indicator.py'], stdout=PIPE).communicate()[0]:
+    print 'Launch vpn_indicator'
+else:
+    sys.exit()
 
 try:
+    import gi
+    gi.require_version('Gtk', '3.0')
     from gi.repository import Gtk, GLib
+
+    gi.require_version('AppIndicator3', '0.1')
     from gi.repository import AppIndicator3 as appindicator
+
+    gi.require_version('Notify', '0.7')
     from gi.repository import Notify as notify
 except ImportError:
-    print 'Lack of Gtk related modules!'
-    print 'VPN indicator will not run!'
-    print 'You should try "sudo apt-get install gir1.2-appindicator3-0.1"'
+    print >> sys.stderr, 'Lack of Gtk related modules!'
+    print >> sys.stderr, 'VPN indicator will not run!'
+    print >> sys.stderr, 'You should try "sudo apt-get install gir1.2-appindicator3-0.1 python-gobject"'
+    sys.exit()
 
 
 class InfoServer:

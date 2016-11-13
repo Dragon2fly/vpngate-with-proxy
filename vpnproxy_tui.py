@@ -1022,7 +1022,9 @@ import requests
 from ui_elements import *
 
 # -------- all dependencies should be available after this line --------
-# raw_input('haha')
+# raw_input('for debugging')
+
+# clear system proxy so that request only go through the one specified
 screen = Display(vpn_connect)
 screen.get_data_status = 'call'
 screen.run()
