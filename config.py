@@ -177,7 +177,7 @@ class Setting:
         self.filter = OrderedDict([('country', 'all'), ('port', 'all'), ('score', 'all')])
 
         self.dns = OrderedDict([('fix_dns', 'yes'),
-                                ('dns', '8.8.8.8, 8.8.8.8, 84.200.69.80, 208.67.222.222')])
+                                ('dns', '8.8.8.8, 84.200.69.80, 208.67.222.222')])
 
         self.openvpn = {'verbose': 'yes'}
 

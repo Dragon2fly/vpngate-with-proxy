@@ -11,12 +11,6 @@ import socket, errno
 import time
 import platform
 
-if 'buntu' in platform.platform() and \
-        not Popen(['pgrep', '-f', 'python vpn_indicator.py'], stdout=PIPE).communicate()[0]:
-    print 'Launch vpn_indicator'
-else:
-    sys.exit()
-
 try:
     import gi
     gi.require_version('Gtk', '3.0')
@@ -112,7 +106,8 @@ class InfoServer:
     def send(self, msg):
         if msg == 'dead':
             self.is_dead = True
-            self.sock.shutdown(socket.SHUT_RDWR)
+            if self.is_connected:
+                self.sock.shutdown(socket.SHUT_RDWR)
 
         elif self.is_connected:
             try:
@@ -375,6 +370,13 @@ class VPNIndicator:
 
 
 if __name__ == '__main__':
+    another_me = Popen(['pgrep', '-f', 'python vpn_indicator.py'], stdout=PIPE).communicate()[0]
+    another_me = another_me.strip().split('\n')
+
+    if 'buntu' not in platform.platform() or len(another_me) > 1:
+        print 'exist another me', another_me[1:]
+        sys.exit()
+
     # queue for interacting between indicator and server
     q = Queue()
 

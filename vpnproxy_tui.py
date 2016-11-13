@@ -7,17 +7,17 @@ __version__ = "1.30"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
-import os, sys
+import os, sys, signal
 import base64
 import time
 import datetime
 from copy import deepcopy
 from config import *
-from Queue import Queue
+from Queue import Queue, Empty
 from subprocess import call, Popen, PIPE
 from threading import Thread
 from collections import deque, OrderedDict
-from vpn_indicator import *
+from vpn_indicator import InfoClient
 
 # Get sudo privilege
 euid = os.geteuid()

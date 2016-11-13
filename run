@@ -1,3 +1,4 @@
 #!/bin/bash
 stdbuf -oL python vpn_indicator.py > indicator.log &
+sleep 0.5
 sudo python vpnproxy_tui.py
