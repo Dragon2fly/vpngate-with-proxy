@@ -1001,13 +1001,13 @@ if need:
         ctext("Have you 'sudo apt-get update' recently?", 'B') + "([yes] | no): ") else 'no'
 
     if update_now == 'yes':
-        call(['apt-get', '-y', 'update'], env=env)
+        call(['apt-get', 'update'], env=env)
 
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
         if package in ['openvpn', 'python-pip']:
-            call(['apt-get', 'install', package], env=env)
+            call(['apt-get', '-y', 'install', package], env=env)
         else:
             call(['pip', 'install', package], env=env)
             globals()[package] = __import__(package)

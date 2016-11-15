@@ -20,11 +20,13 @@ try:
 
     gi.require_version('Notify', '0.7')
     from gi.repository import Notify as notify
+
+    satisfied = True
 except ImportError:
     print >> sys.stderr, 'Lack of Gtk related modules!'
     print >> sys.stderr, 'VPN indicator will not run!'
     print >> sys.stderr, 'You should try "sudo apt-get install gir1.2-appindicator3-0.1 python-gobject"'
-    sys.exit()
+    satisfied = False
 
 
 class InfoServer:
@@ -78,12 +80,16 @@ class InfoServer:
                         print 'Server: Received dead signal'
                         self.sock.close()
                         return 0
-                    else:
+                    elif not self.is_connected:
                         self.client, addrr = self.sock.accept()
                         self.readlist.append(self.client)
                         self.is_connected = True
                         print 'Server: Connected with %s:%s' % addrr
                         q_info.put('connected')
+                    else:
+                        # reject all other request
+                        client, addrr = self.sock.accept()
+                        client.close()
 
                 else:  # client sent something
                     try:
@@ -101,6 +107,8 @@ class InfoServer:
                     except socket.error as e:
                         print 'Client die unexpectedly'
                         self.is_connected = False
+                    except Exception:
+                        sys.exit()
 
     def send(self, msg):
         if msg == 'dead':
@@ -355,7 +363,14 @@ class VPNIndicator:
         self.send(arg)
 
     def callback(self):
+        global t
         try:
+            if not t.isAlive():
+                self.notifier.update("Error", "Server dead unexpectedly", icon=None)
+                self.notifier.show()
+                t = Thread(target=server.check_io, args=(q,))
+                t.start()
+
             data = self.q_info.get_nowait()
             self.reload(data)
         except Empty:
@@ -368,7 +383,7 @@ class VPNIndicator:
         return True
 
 
-if __name__ == '__main__':
+if __name__ == '__main__' and satisfied:
     another_me = Popen(['pgrep', '-f', 'python vpn_indicator.py'], stdout=PIPE).communicate()[0]
     another_me = another_me.strip().split('\n')
 

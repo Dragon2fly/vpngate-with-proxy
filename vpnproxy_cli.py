@@ -390,7 +390,7 @@ if need:
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
-        call(['apt-get', 'install', package], env=env)
+        call(['apt-get', '-y', 'install', package], env=env)
 
     import requests
 
