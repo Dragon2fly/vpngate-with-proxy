@@ -23,9 +23,8 @@ try:
 
     satisfied = True
 except ImportError:
-    print >> sys.stderr, 'Lack of Gtk related modules!'
-    print >> sys.stderr, 'VPN indicator will not run!'
-    print >> sys.stderr, 'You should try "sudo apt-get install gir1.2-appindicator3-0.1 python-gobject"'
+    print >> sys.stderr, ' Lack of Gtk related modules! VPN indicator will not run!'
+    print >> sys.stderr, ' You should try "sudo apt-get install gir1.2-appindicator3-0.1 python-gobject"'
     satisfied = False
 
 
