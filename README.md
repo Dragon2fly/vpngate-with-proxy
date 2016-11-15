@@ -8,17 +8,28 @@ Work on debian based system. Tested on Ubuntu and Raspbian.
 
 I will wrap SoftEther_vpn later when I have time. You are welcome to fork this repo and wrap SoftEther_vpn yourself.
 
-**Indicator**: Tested on Ubuntu and is only enabled by default on Ubuntu. For other distro,
-you can test it by *$ ./vpn_indicator.py* after launching *vpnproxy_tui.py*
+**Indicator**: is optional.  
 
-![](http://s19.postimg.org/580s2qyo3/2connect_success.png)
+<img  align="right" src="https://s19.postimg.org/5l77q2q83/8indicator.png">
+
+Tested on Ubuntu and is only enabled by default on Ubuntu.
+
+For other unix os, you need to modify the `run` file and install packages below:
+
+    sudo apt-get install gir1.2-appindicator3-0.1 python-gobject
+
+
+If you have any trouble or request about the program, 
+please make a new issue at https://github.com/Dragon2fly/vpngate-with-proxy/issues
+
+
 
 # Dependency:
 * **openvpn**: ```$ sudo apt-get install openvpn```
 * **resolvconf**: ```$ sudo apt-get install resolvconf```   Only if you use the version in 'old' directory
 * **python 2.7.x**: should already be shipped with your linux
 * **python-requests**: ```$ sudo apt-get install python-requests```
-* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` Only if you use `tui` version (terminal user interface)
+* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` , only if you use `tui` version (terminal user interface)
 
 Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
 
@@ -69,17 +80,12 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
 
   ```Shell
   $ cd vpngate-with-proxy
-  $ ./vpnproxy_tui.py
+  $ ./run [arg]
   ```
-  
-  or 
-  ```Shell
-  $ cd vpngate-with-proxy
-  $ ./vpnproxy_cli.py
-  ```
-  
-   - **vpnproxy_tui.py** has better UI, colorful and easier to use.
-   - **vpnproxy_cli.py** is normal terminal application, lightweight and is aim to run on server (RaspberryPi ?)
+   - **arg** could be either none or **tui** or **cli**.
+   - **vpnproxy_tui.py** has better UI, colorful and easier to use. Run when `arg` is none or **tui**
+   - **vpnproxy_cli.py** is normal terminal application, lightweight and is aim to run on server (RaspberryPi ?). 
+   Run when `arg` is **cli**
 
 Then the program will first setup a configuration file `config.ini` by asking you for **proxy** if needed to 
 connect to the Internet. After that it will show the default configuration of the program. 
@@ -88,12 +94,13 @@ Next time launching this program, you won't see this configuration again. Either
 
   If no thing goes wrong, the vpn server's list will show up.
 
-  ![](http://s19.postimg.org/qgegk6d4z/1startup.png)
+  ![](https://s19.postimg.org/tg0eofvwj/1startup.png)
 
 ### 3. Interaction:
-  * Connect to a specific vpn server by typing its *index* number (eg: 11) and then Enter.
+  * Connect to a specific vpn server by typing its *index* number (eg: 3) and then Enter.
   If nothing went wrong, a `successfully` message show up.
-  ![](http://s19.postimg.org/603g1y2v7/4oldandnew.png)
+  
+    ![](https://s19.postimg.org/m3uyiwdoj/4oldandnew.png)
 
   * Your currently chosen server will be highlighted with `dark blue` color.
   * All connected servers before the current one is show in `dark red` color.
@@ -103,7 +110,7 @@ Next time launching this program, you won't see this configuration again. Either
     * **F4**: **Country**, looking for a specific country or all that available?
     * **F5**: **Sort by**, sort these servers by what parameter?
 
-   ![](http://s19.postimg.org/xtyfwvmkj/6menu.png)
+    ![](https://s19.postimg.org/q2s61q2bn/6menu.png)
 
   * **Vpn command**: As you mentioned above, give an index of the server then hit Enter will open a vpn tunnel from your to that server. And there are still some more.
 
@@ -136,10 +143,10 @@ server, that doesn't mean you are totally safe.
    If you are serious about privacy, this is necessary. DNS server knows the web addresses that you connected to,
    unless you type IP address directly.
 
-     To know your current DNS provider, https://www.dnsleaktest.com or https://ipleak.net
+   To know your current DNS provider, https://www.dnsleaktest.com or https://ipleak.net
 
-     * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
-     * Connect to any VPN server and test if your dns provider is changed.
+   * Turn on `DNS fix` by press `F3` before connecting to vpn server. Choose some good DNS from http://pcsupport.about.com/od/tipstricks/a/free-public-dns-servers.htm
+   * Connect to any VPN server and test if your dns provider is changed.
   
   If DNS is not changed, make sure that you have turned off your system wide proxy and try again.
   While using the ethernet for vpn, connected to wifi may reset your DNS.  
@@ -150,9 +157,15 @@ You could also use below command in Ubuntu to see trace route:
   ```
 
 ### 5. Some notes:
-  * To view or change settings before the program fetches server's list:
+  * To view or change settings before the program fetches server's list, use one of below:
   ```Shell
-  $ ./vpnproxy_tui.py config
+  $ ./run config
+  ```
+  ```Shell
+  $ ./run cli config
+  ```
+  ```Shell
+  $ ./run tui config
   ```
   
   * (vpnproxy_cli.py only) To view or change settings at server's list: type *Vpn command* **c** or **config** then Enter
@@ -162,29 +175,34 @@ You could also use below command in Ubuntu to see trace route:
 
   * The program only shows the last log line at the bottom of terminal. In fact, there is 20 last lines of the log.
    To view these lines, you just need to extend the high of the terminal window.
-   ![log](http://s19.postimg.org/5c48tuzur/7loglines.png)
+   ![log](https://s19.postimg.org/a5te509xf/7loglines.png)
    The log is shown up side down so the latest information will be in the highest place
 
   * If your terminal looks weird after program crashed or `Ctrtl+z`, `$ reset` would help
 
 
 # Troubleshoot:
-  Symptom: The program is unable to fetch new server data nor connect to any vpn server, your networking is not back to normal.
+  If the program is unable to fetch new server data nor connect to any vpn server, your networking is not back to normal.
 
-  That is when `restore`, `kill` and `log on` *command* come in handy.
+  That is when `restore`, `kill` and `log on` *command* come in handy. 
+  
+  You will need to reset your network setting by:
 
   1. **kill** all openvpn processes
-  2. **quit** the program and launch it again. If it can fetch the server data, OK.
-
-  If it doesn't
-  3. `sudo iptables -F` to delete all changes to the iptable, then `$ sudo service network-manager restart`
-  and do step 2 again.
+  2. `$ sudo service network-manager restart`
 
   Restart your system or reconnect to wifi or ethernet will also help.
   If it still doesn't, your proxy may be offline or `\etc\resolv.conf`'s content is incorrect.
   Ping your proxy from another computer to test. And double check `\etc\resolv.conf`
   
-  If your network is behind a proxy, although the program has limited the number of socket connection per second,
-  there is a chance that your ip will be blocked because of spamming too many socket connection 
-  (to test if OpenVPN servers are still alive) during a short time, in other words, DDoS your proxy. 
+  If your network is behind a proxy, there is a chance that your ip will be blocked. 
+  Testing if OpenVPN servers are dead or alive requires spamming many socket connection.
+  Although the program has limited the number of socket connection per second, the proxy may think it is being DDoS. 
   Search in the source code for **test_interval** and increase it a little bit. 
+  
+  If vpn_indicator is unresponsive, kill it by:
+      
+      $ kill -9 `pgrep -f vpn_indicator`
+      
+      
+  FOr other problems and bugs, please make an issue at https://github.com/Dragon2fly/vpngate-with-proxy/issues

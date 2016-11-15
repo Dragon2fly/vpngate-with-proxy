@@ -1,4 +1,24 @@
 #!/bin/bash
-stdbuf -oL python vpn_indicator.py > indicator.log &
-sleep 0.5
-sudo python vpnproxy_tui.py
+
+# allow running from anywhere
+dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+cd "$(dirname "$(realpath "$0")")";
+
+type=$1
+arg=$2
+
+if [ "$type" == "cli" ]; then
+    sudo python vpnproxy_cli.py $arg
+else
+    if [ "$type" != "tui" ]; then
+        arg=$type
+    fi
+
+    # check if this os is *ubuntu and launch vpn_indicator
+    os_id=`lsb_release -i`
+    target="buntu"
+    test "${os_id#*$target}" != "$os_id" && stdbuf -oL python vpn_indicator.py > logs/indicator.log &
+
+    sleep 0.2
+    sudo python vpnproxy_tui.py $arg
+fi

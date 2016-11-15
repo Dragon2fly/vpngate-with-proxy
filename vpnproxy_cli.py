@@ -20,8 +20,9 @@ from subprocess import call, Popen, PIPE
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
-    args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
-    os.execlpe('sudo', *args)
+    # args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
+    # os.execlpe('sudo', *args)
+    raise RuntimeError('Permission deny! You need to "sudo" or use "./run cli" instead')
 
 # Define some mirrors of vpngate.net
 mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here

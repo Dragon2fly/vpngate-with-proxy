@@ -22,14 +22,9 @@ from vpn_indicator import InfoClient
 # Get sudo privilege
 euid = os.geteuid()
 if euid != 0:
-    import platform
-
-    if 'buntu' in platform.platform() and not Popen(['pgrep', '-f', 'vpn_indicator'], stdout=PIPE).communicate()[0]:
-        print 'Launch vpn_indicator'
-        Popen(['python', 'vpn_indicator.py'], stdout=PIPE, stderr=PIPE, bufsize=1, )
-
-    args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
-    os.execlpe('sudo', *args)
+    # args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
+    # os.execlpe('sudo', *args)
+    raise RuntimeError('Permission deny! You need to "sudo" or use "./run" instead')
 
 # Threading
 ON_POSIX = 'posix' in sys.builtin_module_names
@@ -880,7 +875,7 @@ class Display:
             self.ovpn.cfg.write()
 
     def status(self, msg=None):
-        logpath = self.ovpn.config_file[:-10] + 'vpn.log'
+        logpath = self.ovpn.config_file[:-10] + 'logs/vpn.log'
         if msg is None:
             # backup last season log
             if os.path.exists(logpath):
@@ -1006,7 +1001,7 @@ if need:
         ctext("Have you 'sudo apt-get update' recently?", 'B') + "([yes] | no): ") else 'no'
 
     if update_now == 'yes':
-        call(['apt-get', 'update'], env=env)
+        call(['apt-get', '-y', 'update'], env=env)
 
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
@@ -1024,7 +1019,6 @@ from ui_elements import *
 # -------- all dependencies should be available after this line --------
 # raw_input('for debugging')
 
-# clear system proxy so that request only go through the one specified
 screen = Display(vpn_connect)
 screen.get_data_status = 'call'
 screen.run()

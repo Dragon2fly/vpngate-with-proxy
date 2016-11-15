@@ -9,7 +9,6 @@ import select
 import signal, os, sys
 import socket, errno
 import time
-import platform
 
 try:
     import gi
@@ -193,9 +192,9 @@ class VPNIndicator:
         self.send = sender
 
         self.APPINDICATOR_ID = 'myappindicator'
-        self.icon1 = os.path.abspath('connected.svg')
-        self.icon2 = os.path.abspath('connectnot.svg')
-        self.icon345 = [os.path.abspath(icon) for icon in ['connecting1.svg','connecting2.svg','connecting3.svg']]
+        self.icon1 = os.path.abspath('icon/connected.svg')
+        self.icon2 = os.path.abspath('icon/connectnot.svg')
+        self.icon345 = [os.path.abspath(icon) for icon in ['icon/connecting1.svg','icon/connecting2.svg','icon/connecting3.svg']]
         self.hang = False
         self.is_connecting = False
         self.icon_th = 0
@@ -362,7 +361,7 @@ class VPNIndicator:
         except Empty:
             pass
         except Exception as e:
-            with open('indicator.log','w+') as log:
+            with open('logs/indicator.log','a+') as log:
                 log.write(str(e))
                 self.notifier.update("Error", str(e), icon=None)
                 self.notifier.show()
@@ -373,7 +372,7 @@ if __name__ == '__main__':
     another_me = Popen(['pgrep', '-f', 'python vpn_indicator.py'], stdout=PIPE).communicate()[0]
     another_me = another_me.strip().split('\n')
 
-    if 'buntu' not in platform.platform() or len(another_me) > 1:
+    if len(another_me) > 1:
         print 'exist another me', another_me[1:]
         sys.exit()
 

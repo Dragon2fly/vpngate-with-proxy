@@ -43,7 +43,7 @@ def get_input(s, option):
 
     if option[0] not in ['c', 'config']:
         print 'Wrong argument. Do you mean "config" or "restore" ?'
-        return
+        sys.exit()
 
     while 1:
         use_proxy, proxy, port, ip, sort_by, s_country, s_port, s_score, fix_dns, dns, verbose, mirrors = s[:]
