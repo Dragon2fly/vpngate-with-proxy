@@ -3,6 +3,7 @@
 # allow running from anywhere
 dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 cd "$(dirname "$(realpath "$0")")";
+echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"
 
 type=$1
 arg=$2

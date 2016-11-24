@@ -30,6 +30,7 @@ please make a new issue at https://github.com/Dragon2fly/vpngate-with-proxy/issu
 * **python 2.7.x**: should already be shipped with your linux
 * **python-requests**: ```$ sudo apt-get install python-requests```
 * **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` , only if you use `tui` version (terminal user interface)
+* **wmctrl**: ```$ sudo apt-get install wmctrl```, only if you use `tui` version, use for focusing window from indicator. 
 
 Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
 

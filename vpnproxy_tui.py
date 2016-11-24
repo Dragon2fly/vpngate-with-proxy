@@ -977,7 +977,7 @@ class Display:
 vpn_connect = Connection()  # initiate network parameter
 
 # check_dependencies:
-required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0}
+required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0, 'wmctrl': 0}
 for module in ['pip', 'requests', 'urwid']:
     try:
         __import__(module, globals(), locals(), [], -1)
@@ -988,6 +988,9 @@ for module in ['pip', 'requests', 'urwid']:
 
 if not os.path.exists('/usr/sbin/openvpn'):
     required['openvpn'] = 1
+
+if not os.path.exists('/usr/sbin/openvpn'):
+    required['wmctrl'] = 1
 
 need = sorted([p for p in required if required[p]])
 if need:
