@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.30"
+__version__ = "1.35"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -12,6 +12,7 @@ import signal
 import base64
 import time
 import datetime
+import platform
 from config import *
 from Queue import Queue
 from threading import Thread
@@ -23,6 +24,11 @@ if euid != 0:
     # args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
     # os.execlpe('sudo', *args)
     raise RuntimeError('Permission deny! You need to "sudo" or use "./run cli" instead')
+
+# detect Debian based or Redhat based OS
+pkg_mgr = 'apt-get'
+if "generic" not in platform.platform():
+    pkg_mgr = 'yum'     # yum or dnf; on new fedora, yum is automatically redirect to dnf
 
 # Define some mirrors of vpngate.net
 mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here
@@ -367,7 +373,7 @@ s_country, s_port, s_score = cfg.filter.values()
 dns_fix, dns = cfg.dns.values()
 verbose = cfg.openvpn.values()[0]
 
-required = {'openvpn': 0, 'python-requests': 0, 'resolvconf': 0}
+required = {'openvpn': 0, 'python-requests': 0}
 
 try:
     import requests
@@ -376,9 +382,6 @@ except ImportError:
 
 if not os.path.exists('/usr/sbin/openvpn'):
     required['openvpn'] = 1
-
-if not os.path.exists('/sbin/resolvconf'):
-    required['resolvconf'] = 1
 
 need = [p for p in required if required[p]]
 if need:
@@ -390,7 +393,7 @@ if need:
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
-        call(['apt-get', '-y', 'install', package], env=env)
+        call([pkg_mgr, '-y', 'install', package], env=env)
 
     import requests
 

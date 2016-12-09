@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.30"
+__version__ = "1.35"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -11,6 +11,7 @@ import os, sys, signal
 import base64
 import time
 import datetime
+import platform
 from copy import deepcopy
 from config import *
 from Queue import Queue, Empty
@@ -25,6 +26,11 @@ if euid != 0:
     # args = ['sudo', '-E', sys.executable] + sys.argv + [os.environ]
     # os.execlpe('sudo', *args)
     raise RuntimeError('Permission deny! You need to "sudo" or use "./run" instead')
+
+# detect Debian based or Redhat based OS
+pkg_mgr = 'apt-get'
+if "generic" not in platform.platform():
+    pkg_mgr = 'yum'     # yum or dnf; on new fedora, yum is automatically redirect to dnf
 
 # Threading
 ON_POSIX = 'posix' in sys.builtin_module_names
@@ -1004,13 +1010,13 @@ if need:
         ctext("Have you 'sudo apt-get update' recently?", 'B') + "([yes] | no): ") else 'no'
 
     if update_now == 'yes':
-        call(['apt-get', 'update'], env=env)
+        call([pkg_mgr, 'update'], env=env)
 
     for package in need:
         print '\n___Now installing', ctext(package, 'gB')
         print
         if package in ['openvpn', 'python-pip']:
-            call(['apt-get', '-y', 'install', package], env=env)
+            call([pkg_mgr, '-y', 'install', package], env=env)
         else:
             call(['pip', 'install', package], env=env)
             globals()[package] = __import__(package)
