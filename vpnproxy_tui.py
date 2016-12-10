@@ -406,6 +406,22 @@ class Connection:
 
         self.messages['debug'].appendleft(' Filtering out dead servers ... [%d/%d dead]' % (count, total))
 
+    def post_action(self, when):
+        """ Change DNS, and do additional behaviors defined by user in user_script.sh"""
+        if when == 'up':
+            self.dns_manager('change')
+
+            # call user_script
+            up = 'bash user_script.sh up'.split()
+            call(up, stdout=PIPE)
+
+        elif when == 'down':
+            self.dns_manager('restore')
+
+            # call user_script
+            down = 'bash user_script.sh down'.split()
+            call(down, stdout=PIPE)
+
     def dns_manager(self, action='backup'):
         dns_orig = '/etc/resolv.conf.bak'
 
@@ -462,7 +478,7 @@ class Connection:
             p.send_signal(signal.SIGINT)
             p.wait()
         self.is_connected = status_code
-        self.dns_manager('restore')
+        self.post_action('down')
 
         # make sure openvpn did close its device
         tuntap = Popen(['ifconfig', '-s'], stdout=PIPE).communicate()[0]
@@ -478,7 +494,7 @@ class Connection:
         command = ['sudo', 'pkill', 'openvpn']
         call(command)
         self.messages['status'].appendleft(['All openvpn processes are terminated'])
-        self.dns_manager('restore')
+        self.post_action('down')
 
     def vpn_checker(self):
         """ Check VPN season
@@ -502,7 +518,7 @@ class Connection:
             self.messages['debug'].appendleft(line.strip()[11:])
             if 'Initialization Sequence Completed' in line:
                 self.dropped_time = 0
-                self.dns_manager('change')
+                self.post_action('up')
                 self.messages['status'] += ['VPN tunnel established successfully', 'Ctrl+C to quit VPN']
                 self.is_connected = 2
             elif self.is_connected and 'Restart pause, ' in line and self.dropped_time <= self.max_retry:

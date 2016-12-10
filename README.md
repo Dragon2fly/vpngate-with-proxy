@@ -3,8 +3,10 @@ VPN GATE client for linux
 * Be able to connect to open vpn servers at **http://www.vpngate.net/en/** directly or through proxy
 * Auto add DNS to fix DNS leak.
 * Auto filter out dead VPN servers. (updated on August 16th)
+* Can execute user defined script after vpn_tunnel is established or broken.
 
-Work on debian based system. Tested on Ubuntu and Raspbian.
+Work on Debian and Redhat based system. 
+Tested on **Ubuntu**, **Raspbian**, **Fedora**.
 
 I will wrap SoftEther_vpn later when I have time. You are welcome to fork this repo and wrap SoftEther_vpn yourself.
 
@@ -72,6 +74,16 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   
   Download: https://github.com/Dragon2fly/vpngate-with-proxy/archive/master.zip
   It contains the "vpngate-with-proxy" folder. Extract it into anywhere you want eg: `$HOME`.
+  
+  
+  **user_script:**
+  
+  Within this folder, there should be a file `user_script.sh`. 
+  This file allow you to run extra commands to fit your need. 
+  You have to manually edit this file and don't change the file name.
+  Commands are divided into 2 groups:
+  - **up**: execute after vpn tunnel is established successfully.
+  - **down**: execute after vpn tunnel is broken/terminated.
 
 ### 2. First run:
   If you have configured **system wide proxy** or proxy in firefox, it'd better to **turn** it **off**. After vpn tunnel is established,

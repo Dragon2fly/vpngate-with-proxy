@@ -5,6 +5,7 @@ __author__ = 'duc_tin'
 from Queue import Empty, Queue
 from threading import Thread
 from subprocess import call, Popen, PIPE
+import datetime
 import select
 import signal, os, sys
 import socket, errno
@@ -28,12 +29,15 @@ except ImportError:
     satisfied = False
 
 
+def rep_time():
+    return str(datetime.datetime.now()).split('.')[0]
+
+
 class InfoServer:
     def __init__(self, port):
         self.host = 'localhost'
         self.port = port
-        self.buffer = 2048  # buffer
-        self.backlog = 1
+        self.backlog = 0
 
         self.is_listening = False
         self.is_connected = False
@@ -44,20 +48,47 @@ class InfoServer:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_address = self.host, self.port
 
-        self.last_msg = ''
-
         self.readlist = [self.sock]  # use for select
 
     def listen(self):
         try:
             self.sock.bind(self.server_address)
             self.sock.listen(self.backlog)
-            print 'listening'
+            print rep_time(),  'listening'
 
             return True
         except socket.errno, e:
-            print e
+            print rep_time(),  e
             return False
+
+    def accept_it(self):
+        if not self.is_connected:
+            self.client, addrr = self.sock.accept()
+            self.readlist.append(self.client)
+            self.is_connected = True
+            print rep_time(), 'Server: Connected with %s:%s' % addrr
+            return 'Connected'
+        else:
+            # reject all other request
+            client, addrr = self.sock.accept()
+            client.close()
+            return 'Another client tried to connect'
+
+    def recv_it(self):
+        data = []
+        while True:
+            char = self.client.recv(1)
+            if not char:  # socket close signal
+                self.is_connected = False
+                self.readlist.remove(self.client)
+                print rep_time(), 'main disconnected'
+                return ''
+
+            elif char=='\n':
+                return ''.join(data)
+
+            else:
+                data.append(char)
 
     def check_io(self, q_info):
         """Receive information about vpn tunnel
@@ -65,7 +96,7 @@ class InfoServer:
         """
         while True:
 
-            # try to bind the socket
+            # try to bind the socket, only run one time
             while not self.is_listening:
                 self.is_listening = self.listen()
                 time.sleep(2)
@@ -74,40 +105,26 @@ class InfoServer:
             readable, _, _ = select.select(self.readlist, [], [])
             for s in readable:
                 if s is self.sock:
-
+                    # sigterm from indicator
                     if self.is_dead:
-                        print 'Server: Received dead signal'
+                        print rep_time(), 'Server: Received dead signal'
                         self.sock.close()
                         return 0
-                    elif not self.is_connected:
-                        self.client, addrr = self.sock.accept()
-                        self.readlist.append(self.client)
-                        self.is_connected = True
-                        print 'Server: Connected with %s:%s' % addrr
-                        q_info.put('connected')
+
+                    # signal from client
                     else:
-                        # reject all other request
-                        client, addrr = self.sock.accept()
-                        client.close()
+                        data = self.accept_it()
+                        q_info.put(data)
 
                 else:  # client sent something
                     try:
-
-                        data = self.client.recv(self.buffer)
-                        if data:
-                            print 'main sent: ', data
-                        else:
-                            self.is_connected = False
-                            self.readlist.remove(self.client)
-                            print 'main disconnected'
-
+                        data = self.recv_it()
                         q_info.put(data)
-
                     except socket.error as e:
-                        print 'Client die unexpectedly'
+                        print rep_time(),  'Client die unexpectedly'
                         self.is_connected = False
-                    except Exception:
-                        sys.exit()
+                    except Exception as e:
+                        print rep_time(), e
 
     def send(self, msg):
         if msg == 'dead':
@@ -117,7 +134,7 @@ class InfoServer:
 
         elif self.is_connected:
             try:
-                self.client.sendall(msg)
+                self.client.sendall(msg + '\n')
                 return True
             except socket.error:
                 return False
@@ -129,8 +146,6 @@ class InfoClient:
     def __init__(self, port):
         self.host = 'localhost'
         self.port = port
-
-        self.buffer = 2048  # buffer
         self.sock = socket.socket()
         self.server_address = self.host, port
         self.is_connected = False
@@ -141,7 +156,7 @@ class InfoClient:
         while not self.is_connected:
             try:
                 self.sock = socket.create_connection(self.server_address)
-                # print 'socket: connected'
+                # print rep_time(),  'socket: connected'
                 self.is_connected = True
 
                 # update current status
@@ -149,30 +164,35 @@ class InfoClient:
                     self.send(self.last_msg)
 
             except socket.error, e:
-                # print str(e)
+                # print rep_time(),  str(e)
                 time.sleep(2)
+
+    def recv_it(self):
+        data = []
+        while True:
+            char = self.sock.recv(1)
+            if not char:  # socket close signal
+                self.is_connected = False
+                return ''
+            elif char == '\n':
+                return ''.join(data)
+            else:
+                data.append(char)
 
     def check_io(self, q_cmd):
         """Receive information about vpn tunnel
             :type q_cmd: Queue
         """
         while True:
-
             if self.is_connected:
                 # check if there is cmd from indicator
                 readable, _, _ = select.select([self.sock], [], [])
                 try:
-
-                    data = self.sock.recv(self.buffer)
+                    data = self.recv_it()
                     if data:
-                        # print data
                         q_cmd.put(data)
-                    else:
-                        self.is_connected = False
-                        # print 'server die'
-
                 except socket.error as e:
-                    print 'Server die unexpectedly'
+                    print rep_time(),  'Server die unexpectedly'
                     self.is_connected = False
             else:
                 self.connect()
@@ -181,7 +201,7 @@ class InfoClient:
         self.last_msg = msg
         if self.is_connected:
             try:
-                self.sock.sendall(msg)
+                self.sock.sendall(msg+'\n')
                 return True
             except socket.error:
                 return False
@@ -235,11 +255,11 @@ class VPNIndicator:
 
     def reload(self, data_in):
         if data_in:
-            print data_in[:12]
+            print rep_time(),  data_in[:12]
 
             self.last_recv = data_in.split(';')
             if 'connecting' in data_in:
-                print 'set blinking'
+                print rep_time(),  'set blinking'
                 self.is_connecting = True
             else:
                 self.is_connecting = False
@@ -328,7 +348,7 @@ class VPNIndicator:
             summary = 'Connected to main program'
             body = ''
         elif 'successfully' in messages[0]:
-            print messages[1:]
+            print rep_time(),  messages[1:]
             tags = ['Ping:', 'Speed:', 'Up time:', 'Season:', 'Log:', 'Score:', 'Protocol:', 'Portal:']
             msg = messages[1:3] + [item for items in zip(tags, messages[3:9]) for item in items]
             summary = 'VPN tunnel established'
@@ -354,31 +374,22 @@ class VPNIndicator:
         self.notifier.show()
 
     def handler(self, signal_num, frame):
-        print 'Indicator: quit now'
+        print rep_time(),  'Indicator: quit now'
         self.quit('')
 
     def send_cmd(self, menu_obj, arg):
-        print 'Indicator sent:', arg
+        print rep_time(),  'Indicator sent:', arg
         self.send(arg)
 
     def callback(self):
-        global t
         try:
-            if not t.isAlive():
-                self.notifier.update("Error", "Server dead unexpectedly", icon=None)
-                self.notifier.show()
-                t = Thread(target=server.check_io, args=(q,))
-                t.start()
-
             data = self.q_info.get_nowait()
             self.reload(data)
         except Empty:
             pass
         except Exception as e:
-            with open('logs/indicator.log','a+') as log:
-                log.write(str(e))
-                self.notifier.update("Error", str(e), icon=None)
-                self.notifier.show()
+            self.notifier.update("Error", str(e), icon=None)
+            self.notifier.show()
         return True
 
 
@@ -387,7 +398,7 @@ if __name__ == '__main__' and satisfied:
     another_me = another_me.strip().split('\n')
 
     if len(another_me) > 1:
-        print 'exist another me', another_me[1:]
+        print rep_time(),  'exist another me', another_me[1:]
         sys.exit()
 
     # queue for interacting between indicator and server
@@ -398,5 +409,10 @@ if __name__ == '__main__' and satisfied:
     t.start()
 
     indicator = VPNIndicator(q, server.send)
-    indicator.run()
+    try:
+        indicator.run()
+    except Exception as e:
+        print rep_time(), 'Indicator:', e
+        if not server.is_dead:
+            server.send('dead')
     t.join()

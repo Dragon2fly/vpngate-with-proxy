@@ -239,6 +239,23 @@ def probe(vpndict):
     print 'Deleted %d dead servers out of %d' % (count, total)
 
 
+def post_action(when):
+    """ Change DNS, and do additional behaviors defined by user in user_script.sh"""
+    if when == 'up':
+        dns_manager('change', dns)
+
+        # call user_script
+        up = 'bash user_script.sh up'.split()
+        call(up)
+
+    elif when == 'down':
+        dns_manager('restore')
+
+        # call user_script
+        down = 'bash user_script.sh down'.split()
+        call(down)
+
+
 def dns_manager(action='backup', DNS='8.8.8.8'):
     global dns_fix
 
@@ -255,9 +272,10 @@ def dns_manager(action='backup', DNS='8.8.8.8'):
         with open('/etc/resolv.conf', 'w+') as resolv:
             for dns in DNS:
                 resolv.write('nameserver ' + dns + '\n')
+        print ctext('\nChanged DNS', 'yB').center(38)
 
     elif action == "restore":
-        print ctext('\nRestore dns', 'yB')
+        print ctext('\nRestore DNS', 'yB')
         reverseDNS = ['-a', '/etc/resolv.conf.bak', '/etc/resolv.conf']
         call(['cp'] + reverseDNS)
 
@@ -279,7 +297,7 @@ def vpn_manager(ovpn):
                 print line,
             if 'Initialization Sequence Completed' in line:
                 dropped_time = 0
-                dns_manager('change', dns)
+                post_action('up')
                 print ctext('VPN tunnel established successfully'.center(40), 'B')
                 print 'Ctrl+C to quit VPN'.center(40)
             elif 'Restart pause, ' in line and dropped_time <= max_retry:
@@ -295,7 +313,7 @@ def vpn_manager(ovpn):
         p.wait()
         print ctext('VPN tunnel is terminated'.center(40), 'B')
     finally:
-        dns_manager('restore')
+        post_action('down')
 
 # ---------------------------- Main  --------------------------------
 # anti dropping
@@ -409,7 +427,8 @@ connected_servers = []
 
 while True:
     print ctext('Use proxy: ', 'B'), use_proxy,
-    print ' || ', ctext('Country: ', 'B'), s_country
+    print ' || ', ctext('Country: ', 'B'), s_country,
+    print ' || ', ctext('Min score: ', 'B'), s_score
 
     if not ranked:
         print '\nNo server found for "%s"\n' % s_country
@@ -437,7 +456,7 @@ while True:
             mirrors = ["http://www.vpngate.net"] + cfg.mirror['url'].split(', ')
             use_proxy, proxy, port, ip = cfg.proxy.values()
             sort_by = cfg.sort.values()[0]
-            s_country, s_port = cfg.filter.values()
+            s_country, s_port, s_score = cfg.filter.values()
             dns_fix, dns = cfg.dns.values()
             verbose = cfg.openvpn.values()[0]
 
@@ -459,4 +478,4 @@ while True:
 
     except KeyboardInterrupt:
         time.sleep(0.5)
-        print "\nSelect another VPN server or 'q' to quit"
+        print "\n\nSelect another VPN server or 'q' to quit"
