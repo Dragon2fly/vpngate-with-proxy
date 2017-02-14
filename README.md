@@ -18,7 +18,7 @@ Tested on Ubuntu and is only enabled by default on Ubuntu.
 
 For other unix os, you need to modify the `run` file and install packages below:
 
-    sudo apt-get install gir1.2-appindicator3-0.1 python-gobject
+    sudo apt-get install gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python-gobject
 
 
 If you have any trouble or request about the program, 
@@ -27,32 +27,30 @@ please make a new issue at https://github.com/Dragon2fly/vpngate-with-proxy/issu
 
 
 # Dependency:
-* **openvpn**: ```$ sudo apt-get install openvpn```
-* **resolvconf**: ```$ sudo apt-get install resolvconf```   Only if you use the version in 'old' directory
 * **python 2.7.x**: should already be shipped with your linux
-* **python-requests**: ```$ sudo apt-get install python-requests```
-* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` , only if you use `tui` version (terminal user interface)
-* **wmctrl**: ```$ sudo apt-get install wmctrl```, only if you use `tui` version, use for focusing window from indicator. 
 
-Except *python 2.7.x*, all other dependencies should be automatically installed at first run.
+Except *python 2.7.x*, all below dependencies should be automatically installed at first run.
+* **openvpn**: ```$ sudo apt-get install openvpn```
+* **python-requests**: ```$ sudo apt-get install python-requests```
+* **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` , for `tui` version (terminal user interface)
+* **wmctrl**: ```$ sudo apt-get install wmctrl```, for `Indicator` of `tui` version, use for focusing window from indicator. 
 
 # How to use:
 
 ### 0. Pre-installation
+  * If your network is behind a proxy
+  ```Shell
+    $ export http_proxy="http://your_proxy:your_port"
+    $ export https_proxy="http://your_proxy:your_port"
+  ```
   * If you has just installed your os, please update your os for it to fetch packages list and know where to download
   other packages later.
 
   ```Shell
   $ sudo apt-get update && sudo apt-get upgrade
   ```
-  If your network is behind a proxy
-  ```Shell
-    $ export http_proxy="http://your_proxy:your_port"
-    $ export https_proxy="http://your_proxy:your_port"
-    $ sudo -E apt-get update && sudo -E apt-get upgrade
-  ```
 
-  * Please check the os clock and calendar is correct for openvpn authentication works properly.
+  * Please check the os clock and calendar if it is correct for openvpn **authentication** to work properly.
 
 ### 1. Installation:
 
@@ -64,15 +62,11 @@ Except *python 2.7.x*, all other dependencies should be automatically installed 
   
   If your network is behind a proxy:
   ```Shell
-    $ export http_proxy="http://your_proxy:your_port"
-    $ export https_proxy="https://your_proxy:your_port"
-    $ sudo -E apt-get install git
-    $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
+  $ sudo -E apt-get install git
+  $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
   ```
   
-  **OR**
-  
-  Download: https://github.com/Dragon2fly/vpngate-with-proxy/archive/master.zip
+  You can also download [the zip file](https://github.com/Dragon2fly/vpngate-with-proxy/archive/master.zip)
   It contains the "vpngate-with-proxy" folder. Extract it into anywhere you want eg: `$HOME`.
   
   
@@ -218,4 +212,5 @@ You could also use below command in Ubuntu to see trace route:
       $ kill -9 `pgrep -f vpn_indicator`
       
       
-  FOr other problems and bugs, please make an issue at https://github.com/Dragon2fly/vpngate-with-proxy/issues
+  For other problems and bugs, please make an issue at https://github.com/Dragon2fly/vpngate-with-proxy/issues. 
+  State clearly the OS and what steps that you have taken that lead to the bug.
