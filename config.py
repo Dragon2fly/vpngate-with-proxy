@@ -66,8 +66,12 @@ def get_input(s, option):
             s.write()
             return
         elif user_input == '1':
-            s.proxy['address'] = raw_input('Your http_proxy:')
-            s.proxy['ip'] = socket.gethostbyname(proxy)
+            s.proxy['address'] = raw_input('Your http_proxy: ')
+            try:
+                s.proxy['ip'] = socket.gethostbyname(s.proxy['address'])
+            except socket.gaierror:
+                s.proxy['ip'] = ''
+                print " Can't resolve hostname of proxy, please input ip!"
         elif user_input == '2':
             user_input = 'abc'
             while not user_input.strip().isdigit() or not 0 <= int(user_input.strip()) <= 65535:
@@ -87,7 +91,7 @@ def get_input(s, option):
 
         elif user_input == '5':
             while not re.match('^[a-z ]*$', user_input.lower().strip()):
-                user_input = raw_input('Country\'s name (eg: [all], jp, japan):')
+                user_input = raw_input('Country\'s name (eg: [all], jp, japan): ')
             else:
                 s.filter['country'] = 'all' if not user_input else user_input.lower()
 
@@ -115,7 +119,7 @@ def get_input(s, option):
             print 'Default DNS are 8.8.8.8, 84.200.69.80, 208.67.222.222'
             user_input = '@'
             while not re.match('[a-zA-Z0-9., ]*$', user_input.strip()):
-                user_input = raw_input('DNS server(s) with "," separated or Enter to use default:')
+                user_input = raw_input('DNS server(s) with "," separated or Enter to use default: ')
             if user_input:
                 s.dns['dns'] = user_input.replace(' ', '').split(',')
             else:
@@ -181,10 +185,10 @@ class Setting:
 
         self.openvpn = {'verbose': 'yes'}
 
-        self.mirror = {'url': "http://125.131.205.167:52806, "
-                              "http://115.160.46.181:38061, "
-                              "http://i121-114-60-223.s41.a028.ap.plala.or.jp:38715, "
-                              "http://captkaos351.net:16691"}
+        self.mirror = {'url': "http://p76ed4cd5.tokynt01.ap.so-net.ne.jp:16169, "
+                              "http://103.1.249.67:29858, "
+                              "http://211.217.242.42:3230, "
+                              "http://zp018093.ppp.dion.ne.jp:36205"}
 
         self.sections = OrderedDict([('proxy', self.proxy),
                                      ('sort', self.sort),
