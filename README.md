@@ -6,7 +6,7 @@ VPN GATE client for linux
 * Can execute user defined script after vpn_tunnel is established or broken.
 
 Work on Debian and Redhat based system. 
-Tested on **Ubuntu**, **Raspbian**, **Fedora**.
+Tested on **Ubuntu**, **Raspbian**, **Fedora**, **Bunsen**.
 
 I will wrap SoftEther_vpn later when I have time. You are welcome to fork this repo and wrap SoftEther_vpn yourself.
 
@@ -101,7 +101,7 @@ Next time launching this program, you won't see this configuration again. Either
 
   If no thing goes wrong, the vpn server's list will show up.
 
-  ![](https://s19.postimg.org/tg0eofvwj/1startup.png)
+   ![](https://s19.postimg.org/tg0eofvwj/1startup.png)
 
 ### 3. Interaction:
   * Connect to a specific vpn server by typing its *index* number (eg: 3) and then Enter.
