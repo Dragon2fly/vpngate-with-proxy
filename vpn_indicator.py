@@ -11,23 +11,6 @@ import signal, os, sys
 import socket, errno
 import time
 
-try:
-    import gi
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, GLib
-
-    gi.require_version('AppIndicator3', '0.1')
-    from gi.repository import AppIndicator3 as appindicator
-
-    gi.require_version('Notify', '0.7')
-    from gi.repository import Notify as notify
-
-    satisfied = True
-except ImportError:
-    print >> sys.stderr, ' Lack of Gtk related modules! VPN indicator will not run!'
-    print >> sys.stderr, ' You should try "sudo apt-get install gir1.2-appindicator3-0.1 python-gobject"'
-    satisfied = False
-
 
 def rep_time():
     return str(datetime.datetime.now()).split('.')[0]
@@ -393,26 +376,47 @@ class VPNIndicator:
         return True
 
 
-if __name__ == '__main__' and satisfied:
-    another_me = Popen(['pgrep', '-f', 'python vpn_indicator.py'], stdout=PIPE).communicate()[0]
-    another_me = another_me.strip().split('\n')
-
-    if len(another_me) > 1:
-        print rep_time(),  'exist another me', another_me[1:]
-        sys.exit()
-
-    # queue for interacting between indicator and server
-    q = Queue()
-
-    server = InfoServer(8088)
-    t = Thread(target=server.check_io, args=(q,))     # shouldn't be daemon
-    t.start()
-
-    indicator = VPNIndicator(q, server.send)
+if __name__ == '__main__':
     try:
-        indicator.run()
-    except Exception as e:
-        print rep_time(), 'Indicator:', e
-        if not server.is_dead:
-            server.send('dead')
-    t.join()
+        import gi
+
+        gi.require_version('Gtk', '3.0')
+        from gi.repository import Gtk, GLib
+
+        gi.require_version('AppIndicator3', '0.1')
+        from gi.repository import AppIndicator3 as appindicator
+
+        gi.require_version('Notify', '0.7')
+        from gi.repository import Notify as notify
+
+        satisfied = True
+    except (ImportError, ValueError):
+        print >> sys.stderr, ' Lack of Gtk related modules! VPN indicator will not run!'
+        print >> sys.stderr, ' You should try "sudo apt-get install gir1.2-appindicator3-0.1 ' \
+                             'gir1.2-notify-0.7 python-gobject"'
+        satisfied = False
+        time.sleep(1)
+
+    if satisfied:
+        another_me = Popen(['pgrep', '-f', '"python vpn_indicator.py"'], stdout=PIPE).communicate()[0]
+        another_me = another_me.strip().split('\n')
+
+        if len(another_me) > 1:
+            print rep_time(),  'exist another me', another_me[1:]
+            sys.exit()
+
+        # queue for interacting between indicator and server
+        q = Queue()
+
+        server = InfoServer(8088)
+        t = Thread(target=server.check_io, args=(q,))     # shouldn't be daemon
+        t.start()
+
+        indicator = VPNIndicator(q, server.send)
+        try:
+            indicator.run()
+        except Exception as e:
+            print rep_time(), 'Indicator:', e
+            if not server.is_dead:
+                server.send('dead')
+        t.join()
