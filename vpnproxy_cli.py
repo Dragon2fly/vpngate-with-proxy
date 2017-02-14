@@ -12,11 +12,10 @@ import signal
 import base64
 import time
 import datetime
-import platform
 from config import *
 from Queue import Queue
 from threading import Thread
-from subprocess import call, Popen, PIPE
+from subprocess import call, Popen, PIPE, check_output
 
 # Get sudo privilege
 euid = os.geteuid()
@@ -25,10 +24,12 @@ if euid != 0:
     # os.execlpe('sudo', *args)
     raise RuntimeError('Permission deny! You need to "sudo" or use "./run cli" instead')
 
-# detect Debian based or Redhat based OS
-pkg_mgr = 'apt-get'
-if "generic" not in platform.platform():
-    pkg_mgr = 'yum'     # yum or dnf; on new fedora, yum is automatically redirect to dnf
+# detect Debian based or Redhat based OS's package manager
+pkg_mgr = None
+check_ls = ["apt-get", "yum", "dnf"]
+for pkg in check_ls:
+    if check_output("whereis -b {}".format(pkg).split()).strip().split(":")[1]:
+        pkg_mgr = pkg
 
 # Define some mirrors of vpngate.net
 mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here
@@ -428,7 +429,8 @@ connected_servers = []
 while True:
     print ctext('Use proxy: ', 'B'), use_proxy,
     print ' || ', ctext('Country: ', 'B'), s_country,
-    print ' || ', ctext('Min score: ', 'B'), s_score
+    print ' || ', ctext('Min score: ', 'B'), s_score,
+    print ' ||', ctext('Portal:', 'B'), s_port
 
     if not ranked:
         print '\nNo server found for "%s"\n' % s_country

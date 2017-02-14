@@ -11,11 +11,10 @@ import os, sys, signal
 import base64
 import time
 import datetime
-import platform
 from copy import deepcopy
 from config import *
 from Queue import Queue, Empty
-from subprocess import call, Popen, PIPE
+from subprocess import call, Popen, PIPE, check_output
 from threading import Thread
 from collections import deque, OrderedDict
 from vpn_indicator import InfoClient
@@ -27,10 +26,12 @@ if euid != 0:
     # os.execlpe('sudo', *args)
     raise RuntimeError('Permission deny! You need to "sudo" or use "./run" instead')
 
-# detect Debian based or Redhat based OS
-pkg_mgr = 'apt-get'
-if "generic" not in platform.platform():
-    pkg_mgr = 'yum'     # yum or dnf; on new fedora, yum is automatically redirect to dnf
+# detect Debian based or Redhat based OS's package manager
+pkg_mgr = None
+check_ls = ["apt-get", "yum", "dnf"]
+for pkg in check_ls:
+    if check_output("whereis -b {}".format(pkg).split()).strip().split(":")[1]:
+        pkg_mgr = pkg
 
 # Threading
 ON_POSIX = 'posix' in sys.builtin_module_names
@@ -276,12 +277,14 @@ class Connection:
             for t in my_thread: t.join()
 
             success = 0
-            self.vpndict.clear()
+            vpndict = {}
             for res in [my_queue.get() for r in xrange(self.get_limit)]:
                 success += res[0]
-                self.vpndict.update(res[1])
+                vpndict.update(res[1])
 
             if success:
+                self.vpndict.clear()
+                self.vpndict.update(vpndict)
                 break
             else:
                 i += self.get_limit
@@ -840,7 +843,12 @@ class Display:
             if key == 'f2':
                 yn = config_data[index] = self.sets.contents[index][0].result[0]
                 proxy, port = self.sets.contents[index][0].result[1:]
-                ip = socket.gethostbyname(proxy)
+                try:
+                    ip = socket.gethostbyname(proxy)
+                except socket.gaierror:
+                    ip = ''
+                    self.ovpn.messages['debug'].appendleft(" Can't resolve hostname of proxy, please input its ip!")
+
                 proxy_ = {'use_proxy': yn, 'address': proxy, 'port': port, 'ip': ip}
                 self.ovpn.rewrite('proxy', **proxy_)
 
