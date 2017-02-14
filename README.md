@@ -39,6 +39,7 @@ Except *python 2.7.x*, all below dependencies should be automatically installed 
 
 ### 0. Pre-installation
   * If your network is behind a proxy
+  
   ```Shell
     $ export http_proxy="http://your_proxy:your_port"
     $ export https_proxy="http://your_proxy:your_port"
@@ -55,6 +56,7 @@ Except *python 2.7.x*, all below dependencies should be automatically installed 
 ### 1. Installation:
 
   Using *git*:
+  
   ```Shell
   $ sudo apt-get install git
   $ git clone https://github.com/Dragon2fly/vpngate-with-proxy.git
