@@ -398,7 +398,7 @@ if __name__ == '__main__':
         time.sleep(1)
 
     if satisfied:
-        another_me = Popen('pgrep -f "python vpn_indicator.py"'.split(), stdout=PIPE).communicate()[0]
+        another_me = Popen(['pgrep', '-f', "python vpn_indicator.py"], stdout=PIPE).communicate()[0]
         another_me = another_me.strip().split('\n')
 
         if len(another_me) > 1:
