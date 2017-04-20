@@ -79,7 +79,7 @@ class Server:
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
         txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
-               self.port]
+               self.ip, self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
 
@@ -421,8 +421,8 @@ if need:
 dns_manager()
 ranked, vpn_list = refresh_data()
 
-labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol', 'Portal']
-spaces = [6, 7, 6, 10, 10, 10, 10, 8, 8]
+labels = ['Idx', 'Geo', 'Ping', 'Speed', 'Up', 'Log', 'Score', 'proto', 'Ip', 'Port']
+spaces = [5, 5, 7, 8, 8, 8, 8, 5, 19, 6]
 labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
 connected_servers = []
 
