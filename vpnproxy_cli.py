@@ -79,7 +79,7 @@ class Server:
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
         uptime = re.split(',|\.', str(uptime))[0]
         txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
-               self.port]
+               self.ip, self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
         return ''.join(txt)
 
@@ -327,7 +327,7 @@ test_timeout = 1
 
 # get config file path
 path = os.path.realpath(sys.argv[0])
-config_file = os.path.split(path)[0] + '/config.ini'
+config_file = os.path.expanduser('~/.config/vpngate-with-proxy/config.ini')
 cfg = Setting(config_file)
 args = sys.argv[1:]
 
@@ -342,6 +342,9 @@ if os.path.exists(config_file):
             get_input(cfg, args)
 
 else:
+    if not os.path.exists(os.path.expanduser('~/.config/vpngate-with-proxy')):
+        os.makedirs(os.path.expanduser('~/.config/vpngate-with-proxy'))
+
     print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
 
     cfg.proxy['use_proxy'] = 'no' if raw_input(
@@ -384,6 +387,10 @@ else:
     get_input(cfg, 'config')
     print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
 
+
+if not os.path.exists("config.ini"):
+    os.symlink(config_file, "config.ini")
+
 # ------------------- check_dependencies: ----------------------
 mirrors.extend(cfg.mirror['url'].split(', '))
 use_proxy, proxy, port, ip = cfg.proxy.values()
@@ -421,8 +428,8 @@ if need:
 dns_manager()
 ranked, vpn_list = refresh_data()
 
-labels = ['Index', 'Country', 'Ping', 'Speed', 'Up time', 'Log Policy', 'Score', 'protocol', 'Portal']
-spaces = [6, 7, 6, 10, 10, 10, 10, 8, 8]
+labels = ['Idx', 'Geo', 'Ping', 'Speed', 'Up', 'Log', 'Score', 'proto', 'Ip', 'Port']
+spaces = [5, 5, 7, 8, 8, 8, 8, 5, 19, 6]
 labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
 connected_servers = []
 
