@@ -106,7 +106,8 @@ class Server:
 class Connection:
     def __init__(self):
         self.path = os.path.realpath(sys.argv[0])
-        self.config_file = os.path.split(self.path)[0] + '/config.ini'
+        self.config_file = os.path.expanduser('~/.config/vpngate-with-proxy/config.ini')
+        self.user_script_file = os.path.expanduser('~/.config/vpngate-with-proxy/user_script.sh')
         self.cfg = Setting(self.config_file)
         self.args = sys.argv[1:]
         self.debug = []
@@ -137,6 +138,14 @@ class Connection:
         if not os.path.exists(self.config_file):
             self.first_config()
 
+        # make sure there are symlink files of them in this script's directory
+        if not os.path.exists("config.ini"):
+            os.symlink(self.config_file, "config.ini")
+
+        if not os.path.exists(self.user_script_file):
+            call(["cp", "user_script.sh.tmp", self.user_script_file])
+            os.symlink(self.user_script_file, "user_script.sh")
+
         self.cfg.load()
         if len(self.args):
             # process commandline arguments
@@ -165,6 +174,9 @@ class Connection:
         self.reload()
 
     def first_config(self):
+        if not os.path.exists(os.path.expanduser('~/.config/vpngate-with-proxy')):
+            os.makedirs(os.path.expanduser('~/.config/vpngate-with-proxy'))
+
         print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
         self.cfg.proxy['use_proxy'] = 'no' if raw_input(
             ctext('Do you need proxy to connect? ', 'B') + '(yes|[no]):') in 'no' else 'yes'
@@ -905,7 +917,7 @@ class Display:
             self.ovpn.cfg.write()
 
     def status(self, msg=None):
-        logpath = self.ovpn.config_file[:-10] + 'logs/vpn.log'
+        logpath = os.path.split(self.ovpn.path)[0] + '/logs/vpn.log'
         if msg is None:
             # backup last season log
             if os.path.exists(logpath):

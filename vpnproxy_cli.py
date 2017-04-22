@@ -328,6 +328,7 @@ test_timeout = 1
 # get config file path
 path = os.path.realpath(sys.argv[0])
 config_file = os.path.expanduser('~/.config/vpngate-with-proxy/config.ini')
+user_script_file = os.path.expanduser('~/.config/vpngate-with-proxy/user_script.sh')
 cfg = Setting(config_file)
 args = sys.argv[1:]
 
@@ -390,6 +391,10 @@ else:
 
 if not os.path.exists("config.ini"):
     os.symlink(config_file, "config.ini")
+
+if not os.path.exists(user_script_file):
+    call(["cp", "user_script.sh.tmp", user_script_file])
+    os.symlink(user_script_file, "user_script.sh")
 
 # ------------------- check_dependencies: ----------------------
 mirrors.extend(cfg.mirror['url'].split(', '))
