@@ -48,7 +48,7 @@ class Server:
         self.country_short = data[6]
         self.NumSessions = data[7]
         self.uptime = data[8]
-        self.logPolicy = data[11]
+        self.logPolicy = "2wk" if data[11]=="2weeks" else "inf"
         self.config_data = base64.b64decode(data[-1])
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
         port = re.findall('remote .+ \d+', self.config_data)
@@ -392,7 +392,7 @@ else:
 if not os.path.exists("config.ini"):
     os.symlink(config_file, "config.ini")
 
-if not os.path.exists(user_script_file):
+if not os.path.exists("user_script.sh"):
     call(["cp", "user_script.sh.tmp", user_script_file])
     os.symlink(user_script_file, "user_script.sh")
 
@@ -433,8 +433,8 @@ if need:
 dns_manager()
 ranked, vpn_list = refresh_data()
 
-labels = ['Idx', 'Geo', 'Ping', 'Speed', 'Up', 'Log', 'Score', 'proto', 'Ip', 'Port']
-spaces = [5, 5, 7, 8, 8, 8, 8, 5, 19, 6]
+labels = ['Idx', 'Geo', 'Ping', 'Speed', 'UpTime', 'Log', 'Score', 'proto', 'Ip', 'Port']
+spaces = [5, 4, 5, 8, 12, 4, 8, 6, 16, 6]
 labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
 connected_servers = []
 

@@ -142,7 +142,7 @@ class Connection:
         if not os.path.exists("config.ini"):
             os.symlink(self.config_file, "config.ini")
 
-        if not os.path.exists(self.user_script_file):
+        if not os.path.exists("user_script.sh"):
             call(["cp", "user_script.sh.tmp", self.user_script_file])
             os.symlink(self.user_script_file, "user_script.sh")
 
