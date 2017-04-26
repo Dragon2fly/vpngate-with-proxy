@@ -584,7 +584,9 @@ class Display:
                         ('button', 'standout, bold', ''),
                         ('popbgs', 'white', 'dark blue')]
 
-        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_int_handler)
+        signal.signal(signal.SIGTERM, self.signal_term_handler)
+        self.SIGTERM = 0
 
         # Header
         self.sets = self.setting()  # Pile of MyColumn
@@ -651,6 +653,9 @@ class Display:
             self.input.set_edit_text(self.clear_input[1])
             self.clear_input = False
 
+        if self.SIGTERM and not self.ovpn.is_connected:
+            raise urwid.ExitMainLoop()
+
         # send/recv information to/from indicator
         self.communicator()
 
@@ -662,11 +667,15 @@ class Display:
         else:
             loop.set_alarm_in(sec=0.5, callback=self.periodic_checker)
 
-    def signal_handler(self, signum, frame):
+    def signal_int_handler(self, signum, frame):
         self.ovpn.kill = True
         self.printf("Ctrl C is pressed. Press again or 'q' to quit program")
         if not self.ovpn.is_connected:
             raise urwid.ExitMainLoop()
+
+    def signal_term_handler(self, signal, frame):
+        self.SIGTERM = 1
+        self.ovpn.kill = True
 
     def connect2vpn(self):
         if self.chosen < len(self.data_ls):
@@ -1016,6 +1025,9 @@ class Display:
 
 
 # ------------------------- Main  -----------------------------------
+# dead gracefully
+
+
 vpn_connect = Connection()  # initiate network parameter
 
 # check_dependencies:

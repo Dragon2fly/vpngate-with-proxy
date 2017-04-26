@@ -316,7 +316,18 @@ def vpn_manager(ovpn):
     finally:
         post_action('down')
 
+
+def signal_term_handler(signal, frame):
+    global SIGTERM
+    print '\nGot SIGTERM, start exiting\n'
+    SIGTERM = 1
+    raise KeyboardInterrupt
+
 # ---------------------------- Main  --------------------------------
+# dead gracefully
+signal.signal(signal.SIGTERM, signal_term_handler)
+SIGTERM = 0
+
 # anti dropping
 dropped_time = 0
 max_retry = 3
@@ -489,6 +500,10 @@ while True:
             print '  q(uit) to quit\n  r(efresh) to refresh table\n' \
                   '  c(onfig) to change setting\n  number in range 0~%s to choose vpn\n' % (server_sum - 1)
             time.sleep(3)
+
+        if SIGTERM:
+            print ctext('Goodbye'.center(40), 'gB')
+            sys.exit()
 
     except KeyboardInterrupt:
         time.sleep(0.5)
