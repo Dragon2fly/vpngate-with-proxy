@@ -106,10 +106,10 @@ class Server:
 class Connection:
     def __init__(self):
         self.path = os.path.realpath(sys.argv[0])
-        self.config_file = os.path.expanduser('~/.config/vpngate-with-proxy/config.ini')
-        self.user_script_file = os.path.expanduser('~/.config/vpngate-with-proxy/user_script.sh')
+        self.config_file = sys.argv[1] + '/.config/vpngate-with-proxy/config.ini'
+        self.user_script_file = sys.argv[1] + '/.config/vpngate-with-proxy/user_script.sh'
         self.cfg = Setting(self.config_file)
-        self.args = sys.argv[1:]
+        self.args = sys.argv[2:]
         self.debug = []
         self.dropped_time = 0
         self.max_retry = 3

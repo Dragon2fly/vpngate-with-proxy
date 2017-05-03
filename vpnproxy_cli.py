@@ -337,11 +337,12 @@ test_interval = 0.25
 test_timeout = 1
 
 # get config file path
+user_home = sys.argv[1]
 path = os.path.realpath(sys.argv[0])
-config_file = os.path.expanduser('~/.config/vpngate-with-proxy/config.ini')
-user_script_file = os.path.expanduser('~/.config/vpngate-with-proxy/user_script.sh')
+config_file = user_home + '/.config/vpngate-with-proxy/config.ini'
+user_script_file = user_home + '/.config/vpngate-with-proxy/user_script.sh'
 cfg = Setting(config_file)
-args = sys.argv[1:]
+args = sys.argv[2:]
 
 # get proxy from config file
 if os.path.exists(config_file):
