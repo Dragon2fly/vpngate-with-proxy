@@ -355,8 +355,8 @@ if os.path.exists(config_file):
             get_input(cfg, args)
 
 else:
-    if not os.path.exists(os.path.expanduser('~/.config/vpngate-with-proxy')):
-        os.makedirs(os.path.expanduser('~/.config/vpngate-with-proxy'))
+    if not os.path.exists(user_home+'/.config/vpngate-with-proxy'):
+        os.makedirs(user_home+'/.config/vpngate-with-proxy')
 
     print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
 

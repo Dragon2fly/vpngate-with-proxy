@@ -106,6 +106,7 @@ class Server:
 class Connection:
     def __init__(self):
         self.path = os.path.realpath(sys.argv[0])
+        self.user_home = sys.argv[1]
         self.config_file = sys.argv[1] + '/.config/vpngate-with-proxy/config.ini'
         self.user_script_file = sys.argv[1] + '/.config/vpngate-with-proxy/user_script.sh'
         self.cfg = Setting(self.config_file)
@@ -174,8 +175,8 @@ class Connection:
         self.reload()
 
     def first_config(self):
-        if not os.path.exists(os.path.expanduser('~/.config/vpngate-with-proxy')):
-            os.makedirs(os.path.expanduser('~/.config/vpngate-with-proxy'))
+        if not os.path.exists(self.user_home + '/.config/vpngate-with-proxy'):
+            os.makedirs(self.user_home + '/.config/vpngate-with-proxy')
 
         print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
         self.cfg.proxy['use_proxy'] = 'no' if raw_input(
