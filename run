@@ -1,28 +1,45 @@
 #!/bin/bash
 
-# allow running from anywhere
-# when making an alias in .bashrc or /etc/environment: vpn="path/to/./run"
+# allow running from anywhere when
+# making an alias in .bashrc or /etc/environment: vpn="path/to/./run"
 
 dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 cd "$(dirname "$(realpath "$0")")";
 echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"
 
+# place to save config files: $HOME/.config/vpngate-with-proxy
 user_home=($HOME)
-type=$1
+control=$1
 arg=$2
 
-if [ "$type" == "cli" ]; then
-    sudo python vpnproxy_cli.py $user_home $arg
-else
-    if [ "$type" != "tui" ]; then
-        arg=$type
-    fi
+# __________check setup__________
+python3 setup.py $user_home || exit 1
 
-    # check if this os is *buntu and launch vpn_indicator
-    os_id=`cat /proc/version`
-    target="buntu"
-    test "${os_id#*$target}" != "$os_id" && stdbuf -oL python vpn_indicator.py > logs/indicator.log &
-
-    sleep 0.2
-    sudo python vpnproxy_tui.py $user_home $arg
+# __________ parse argv __________
+if [ "$control" == "stop" ]; then
+   sudo kill `pgrep -f "vpn_manager.py"`    # don't worry, the manager will cleanup before exiting
+   exit
 fi
+
+if [ "$control" == "log" ]; then
+   ls=`dir logs`
+   tail -f "logs/${ls: -16}"
+   exit
+fi
+
+# __________check if server is running__________
+res=`pgrep -af "vpn_manager.py"`
+
+if [ "$control" == "status" ]; then
+   [[ ! -z  $res  ]] && echo "vpn_manager is running: $res" && exit
+   echo "vpn_manager is stopped" && exit
+fi
+
+# __________launch server if not exist__________
+if [ -z "$res" ]; then
+    sudo python3 -u vpn_manager.py $user_home
+fi
+
+# __________launch UI client__________
+sleep 0.2
+python3 UI.py $user_home
