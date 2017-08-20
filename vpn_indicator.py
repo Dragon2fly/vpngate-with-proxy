@@ -285,7 +285,7 @@ class VPNIndicator:
         next_vpn.connect('activate', self.send_cmd, 'next')
         menu.append(next_vpn)
 
-        menu.append(Gtk.MenuItem())
+        menu.append(Gtk.SeparatorMenuItem())
 
         # stop vpn
         stop_vpn = Gtk.MenuItem('Stop VPN')
@@ -293,9 +293,9 @@ class VPNIndicator:
         menu.append(stop_vpn)
 
         # reconnect the current one
-        stop_vpn = Gtk.MenuItem('ReConnect')
-        stop_vpn.connect('activate', self.send_cmd, 'reconnect')
-        menu.append(stop_vpn)
+        reco_vpn = Gtk.MenuItem('ReConnect')
+        reco_vpn.connect('activate', self.send_cmd, 'reconnect')
+        menu.append(reco_vpn)
 
         menu.append(Gtk.SeparatorMenuItem())
 
@@ -357,8 +357,10 @@ class VPNIndicator:
         self.notifier.show()
 
     def handler(self, signal_num, frame):
-        print rep_time(),  'Indicator: quit now'
-        self.quit('')
+        if signal_num==signal.SIGINT:
+            print rep_time(), 'Indicator: got SigInt'
+        else:
+            self.quit('')
 
     def send_cmd(self, menu_obj, arg):
         print rep_time(),  'Indicator sent:', arg
