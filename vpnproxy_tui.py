@@ -244,7 +244,10 @@ class Connection:
             self.messages['debug'].appendleft('ConnectionError')
             self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
             queue.put((0, {}))
-
+        except requests.exceptions.ConnectTimeout as e:
+            self.messages['debug'].appendleft('ConnectionTimeout')
+            self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
+            queue.put((0, {}))
         except requests.exceptions.RequestException as e:
             self.messages['debug'].appendleft(str(e))
             self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
