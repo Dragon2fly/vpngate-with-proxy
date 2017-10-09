@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 __author__ = "duc_tin"
 
 """
@@ -9,35 +8,68 @@ __author__ = "duc_tin"
 
 import configparser
 import re
-import sys, os
+import sys, os, shutil
 import socket
 import datetime
 import base64
 from collections import OrderedDict
-from subprocess import call
+from subprocess import call, check_output
+import json
+
+
+def is_IF_ok():
+    """ Check all interfaces if any of them is up and linked """
+    ips = check_output(['hostname', '--all-ip-addresses']).strip()
+    if not ips:
+        return False
+    else:
+        for x in os.listdir("/sys/class/net/"):
+            with open(f"/sys/class/net/{x}/operstate") as IF_state:
+                if IF_state.read().strip() == "up":
+                    return True
+        else:
+            return False
 
 
 class Server:
-    def __init__(self, data):
-        self.ip = data[1]
-        self.score = int(data[2])
-        self.ping = int(data[3]) if data[3] != '-' else 'inf'
-        self.speed = int(data[4])
-        self.country_long = data[5]
-        self.country_short = data[6]
-        self.NumSessions = data[7]
-        self.uptime = data[8]
-        self.logPolicy = "2wk" if data[11] == "2weeks" else "inf"
-        self.config_data = str(base64.b64decode(data[-1]), 'ascii')
-        self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
-        port = re.findall('remote .+ \d+', self.config_data)
-        if not port:
-            self.port = '1'
+    def __init__(self, data, mode='main'):
+        self.mode = mode
+        if mode == 'main':
+            self.name = data[0]
+            self.ip = data[1]
+            self.score = int(data[2])
+            self.ping = int(data[3]) if data[3] != '-' else 'inf'
+            self.speed = int(data[4])
+            self.country_long = data[5]
+            self.country_short = data[6]
+            self.NumSessions = data[7]
+            self.uptime = data[8]
+            self.logPolicy = "2wk" if data[11] == "2weeks" else "inf"
+            self.config_data = str(base64.b64decode(data[-1]), 'ascii')
+            self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
+            port = re.findall('remote .+ \d+', self.config_data)
+            if not port:
+                self.port = '1'
+            else:
+                self.port = port[0].split()[-1]
+
         else:
-            self.port = port[0].split()[-1]
+            self.name = data['name']
+            self.ip = data['ip']
+            self.port = data['port']
+            self.proto = data['proto']
+            self.country_short = data['country']
+            self.description = data['description']
+            self.path = data['path']
+
 
     def write_file(self, **kwargs):
-        txt_data = self.config_data
+        if self.mode=='main':
+            txt_data = self.config_data
+        else:
+            with open(self.path) as fi:
+                txt_data = ''.join(fi.readlines())
+
         use_proxy = kwargs.get('use_proxy', 'no')
 
         if use_proxy == 'yes':
@@ -49,23 +81,34 @@ class Server:
 
         extra_option = ['keepalive 5 30\r\n',  # prevent connection drop due to inactivity timeout
                         'connect-retry 2\r\n']
-        if True:
+
+        if 'keepalive 5 30' not in txt_data:
             index = txt_data.find('client\r\n')
             txt_data = txt_data[:index] + ''.join(extra_option) + txt_data[index:]
 
-        tmp_vpn = open('vpn_tmp', 'w+')
+        path = kwargs.get('filename', '')
+        path = 'vpn_tmp' if not path else path
+        tmp_vpn = open(path, 'w+')
         tmp_vpn.write(txt_data)
         return tmp_vpn
 
     def __str__(self):
-        spaces = [5, 4, 5, 8, 12, 4, 8, 6, 16, 6]
-        speed = self.speed / 1000. ** 2
-        uptime = datetime.timedelta(milliseconds=int(self.uptime))
-        uptime = re.split(',|\.', str(uptime))[0]
-        txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
-               self.ip, self.port]
-        txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
-        return ''.join(txt)
+        if self.mode=='main':
+            spaces = [5, 4, 5, 8, 12, 4, 8, 6, 16, 6]
+            speed = self.speed / 1000. ** 2
+            uptime = datetime.timedelta(milliseconds=int(self.uptime))
+            uptime = re.split(',|\.', str(uptime))[0]
+            txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
+                   self.ip, self.port]
+            txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
+            return ''.join(txt)
+
+        else:
+            spaces = [15, 8, 6, 16, 6]
+            line = [self.name, self.country_short, self.proto, self.ip, self.port]
+            line = [str(x).center(spaces[i]) for i, x in enumerate(line)]
+            line = ' '.join(line) + ' ' + self.description[0:22]
+            return line
 
 
 class Setting:
@@ -73,12 +116,15 @@ class Setting:
         self.path = sys.argv[1] + '/.config/vpngate-with-proxy'
         self.config_file = self.path + '/config.ini'
         self.user_script_file = self.path + '/user_script.sh'
+        self.favorites = self.path + '/favorites'
         self.parser = configparser.ConfigParser()
 
         # section network
         self.network = OrderedDict([('use_proxy', 'no'), ('address', ''), ('port', ''), ('ip', ''),
                                     ('test_interval', '0.25'), ('timeout', '1'),
-                                    ('fix_dns', 'yes'), ('dns', '8.8.8.8, 84.200.69.80, 208.67.222.222'), ])
+                                    ('fix_dns', 'yes'), ('dns', '8.8.8.8, 84.200.69.80, 208.67.222.222'),
+                                    ('disable_ipv6', 'yes'),
+                                    ('mode', 'main')])
 
         # section filter
         self.filter = OrderedDict([('country', 'all'), ('port', 'all'), ('score', 'all'),
@@ -152,6 +198,12 @@ class Setting:
         if not os.path.exists("user_script.sh"):
             call(["cp", "user_script.sh.tmp", self.user_script_file])
             os.symlink(self.user_script_file, "user_script.sh")
+
+        # No symlink of Favorites folder
+        if not os.path.exists("favorites"):
+            if not os.path.exists(self.favorites):
+                os.mkdir(self.favorites)
+            os.symlink(self.favorites, "favorites")
 
     def create_new(self):
         if not os.path.exists(self.path):
@@ -265,6 +317,14 @@ class Setting:
             else:
                 self.network['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
 
+        def set_mode(user_input='@'):
+            while user_input not in ('main', 'fav', 'favorite'):
+                user_input=input('mode ([main]|favorite): ')
+                if not user_input:
+                    user_input = 'main'
+
+            self.network['mode'] = 'main' if user_input == 'main' else 'favorite'
+
         def allow_log(user_input='@'):
             while user_input.lower() not in ['y', 'n', 'yes', 'no']:
                 user_input = input('Show openvpn log: ')
@@ -299,24 +359,32 @@ class Setting:
                         self.mirrors['url'] = ', '.join(mirrors)
                         break
 
-        func = {'1': allow_proxy,
-                '2': set_proxy_addr, '3': set_proxy_port,
-                '4': allow_dns_fix,
-                '5': set_dns,
-                '6': set_mirror,
+        def disable_ipv6(user_input='@'):
+            pass
 
-                '7': set_sortby, '8': set_min_score,
-                '9': set_country_filter,
-                '10': set_proto_filter, '11': set_port_filter,
+        flist = [allow_proxy,
+                 set_proxy_addr, set_proxy_port,
+                 allow_dns_fix,
+                 set_dns,
+                 set_mirror,
+                 disable_ipv6,
+                 set_mode,
 
-                '12': allow_log,
-                }
+                 set_sortby, set_min_score,
+                 set_country_filter,
+                 set_proto_filter, set_port_filter,
+
+                 allow_log,
+                 ]
+
+        func = dict(zip((str(x) for x in range(1, len(flist)+1)), flist))
 
         while 1:
             vals = list(self.network.values())
 
             use_proxy, proxy, port, ip = vals[:4]
-            fix_dns, dns = vals[6:]
+            fix_dns, dns = vals[6:8]
+            ipv6, mode = vals[-2:]
 
             # filter
             s_country, s_port, s_score = list(self.filter.values())[:3]
@@ -333,13 +401,16 @@ class Setting:
             print(ctext('    4. Fix dns leaking:', 'yB'), fix_dns)
             print(ctext('    5. DNS list: ', 'yB'), dns)
             print(ctext('    6. VPN gate\'s mirrors:', 'yB'), '%s ...' % mirrors[1])
+            print(ctext('    7. Disable ipv6:', 'yB'), '%s' % ipv6)
+            print(ctext('    8. Mode:', 'yB'), '%s' % mode)
+
 
             print(ctext('\n Filter VPN server:', 'B'))
-            print(ctext('    7. Sort by:', 'yB'), sort_by, ctext('    8. Minimum score:', 'yB'), s_score)
-            print(ctext('    9. Country:', 'yB'), s_country)
-            print(ctext('    10. Protocol:', 'yB'), proto, ctext('    11. VPN server\'s port: ', 'yB'), s_port)
+            print(ctext('    9. Sort by:', 'yB'), sort_by, ctext('    10. Minimum score:', 'yB'), s_score)
+            print(ctext('    11. Country:', 'yB'), s_country)
+            print(ctext('    12. Protocol:', 'yB'), proto, ctext('    13. VPN server\'s port: ', 'yB'), s_port)
 
-            print(ctext('   12. Show openvpn log:', 'B'), verbose)
+            print(ctext('   14. Show openvpn log:', 'B'), verbose)
 
             user_input = input('\nCommand or just Enter to continue: ')
             if user_input == '':
@@ -349,6 +420,152 @@ class Setting:
                 print("Invalid input!")
             else:
                 func[user_input]()
+
+
+class FavoriteSevers(object):
+    """Hold the list of favorite ovpn file"""
+    def __init__(self, checker=None):
+        self.path = sys.argv[1] + '/.config/vpngate-with-proxy'
+        self.my_list = []
+        self.load()
+
+    @property
+    def ip(self):
+        return [x['ip'] for x in self.my_list]
+
+    @property
+    def dict(self):
+        return {x.name: x for x in self}
+
+    def add(self, server:Server=None, item:dict=None):
+        if server:
+            # add from vpngate.net
+            for s in self.my_list:
+                if s['ip'] == server.ip and s['port'] == server.port:
+                    return False
+
+            item = {'name': server.name,
+                    'ip': server.ip,
+                    'port': server.port,
+                    'proto': server.proto,
+                    'country': server.country_short,
+                    'description': 'Saved from vpngate.net',
+                    'path': f'favorites/{server.name}.ovpn'
+                    }
+
+            server.write_file(filename=f'favorites/{server.name}.ovpn').close()
+
+        # else add from local
+        self.my_list.append(item)
+        with open('favorites/database.json', 'w+') as fo:
+            json.dump(self.my_list, fo, indent=4)
+
+        return True
+
+    def remove(self, idx:list):
+        try:
+            remove_ls = [self.my_list[i] for i in idx]
+            for toberemoved in remove_ls:
+                self.my_list.remove(toberemoved)
+                shutil.move(toberemoved['path'], toberemoved['path']+'.old')
+        except (IndexError, FileNotFoundError) as e:
+            return False
+
+        with open('favorites/database.json', 'w+') as fo:
+            json.dump(self.my_list, fo, indent=4)
+
+        return True
+
+    def load(self):
+        """Load available saved data and return the number of server"""
+        if not os.path.exists(self.path + '/favorites/database.json'):
+            return 0
+
+        with open('favorites/database.json') as fi:
+            self.my_list = json.load(fi)
+            return len(self.my_list)
+
+    def add_local(self):
+        ovpn = [x for x in os.listdir("favorites") if x[-4:]=='ovpn']
+        for name in self.dict:
+            if name+'.ovpn' in ovpn:
+                ovpn.remove(name+'.ovpn')
+
+        if not ovpn:
+            print('No new ovpn file found!')
+            return
+
+        ovpn.sort()
+        print('New ovpn file found:')
+        for i in ovpn:
+            print(' -> ', i)
+
+        print()
+        for name in ovpn:
+            proto = ip = port = None
+            with open(f'favorites/{name}') as candidate:
+                try:
+                    # validate basic info
+                    for line in candidate:
+                        if 'proto' == line[:5]:
+                            proto = line.strip().split()[1]
+                        elif 'remote' in line[:6]:
+                            ip, port = line.strip().split()[1:]
+                except:
+                    if not all([proto, ip, port]):
+                        print(f'Either proto|ip|port is missing: {name}')
+                else:
+                    # start adding
+                    ui = input(f'Add "{name}" [country desription]?: ')
+                    if ui.lower() in ['no','n']:
+                        continue
+
+                    country = '  '
+                    descrip = 'Added from local'
+
+                    ui = ui.split(' ', 1)
+                    if len(ui) == 2:
+                        country = ui[0][:2].upper()
+                        descrip = ui[1]
+                    elif len(ui) == 1 and ui[0]:
+                        if len(ui[0]) == 2:
+                            country = ui[0]
+                        else:
+                            descrip = ui[0]
+
+                    item = {'name': name.strip('.ovpn'),
+                            'ip': ip,
+                            'port': port,
+                            'proto': proto,
+                            'country': country,
+                            'description': descrip,
+                            'path': f'favorites/{name}'
+                            }
+
+                    self.add(item=item)
+
+    def __getattribute__(self, name):
+        if name not in ['path', 'my_list', 'load', 'add_local']:
+            self.load()
+        return object.__getattribute__(self, name)
+
+    def __len__(self):
+        return len(self.my_list)
+
+    def __getitem__(self, item):
+        return Server(self.my_list[item], mode='favorite')
+
+    def __str__(self):
+        spaces = [6, 15, 8, 6, 16, 6]
+        txt = ["Index       Name       Country  Proto        IP          Port      Description"]
+
+        for ind, item in enumerate(self.my_list):
+            line = [ind, item['name'], item['country'], item['proto'], item['ip'], item['port']]
+            line = [str(x).center(spaces[i]) for i,x in enumerate(line)]
+            line = ' '.join(line) + ' '*2 + item['description'][0:22]
+            txt.append(line)
+
+        return '\n'.join(txt)
 
 
 def ctext(text, color):
@@ -371,3 +588,9 @@ def ctext(text, color):
     tformat = ''.join([fcolor[fm] for fm in color])
 
     return tformat + text + ENDC
+
+
+if __name__ == '__main__':
+    fs = FavoriteSevers()
+    fs.load()
+    fs.add_local()
