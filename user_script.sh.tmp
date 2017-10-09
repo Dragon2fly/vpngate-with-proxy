@@ -13,12 +13,18 @@ export PATH="$PATH:/usr/sbin:/sbin"
 USER=$(whoami)
 echo $USER
 
+
+# get IPv6 setting from config.ini
+disable_ipv6=$(cat config.ini | grep -o -P '(?<=ipv6 = ).*')
+
+
 # Don't modified this block
 case "$1" in
 up)
     # _____ your code here _____
     echo "called Up script"
     notify-send "$(hostname): LINK IS UP." --icon=network-idle
+    [[ "$disable_ipv6" == "yes" ]] && sysctl -w net.ipv6.conf.all.disable_ipv6=1    # disable
 
     # _____ end up script ______
 ;;
@@ -26,6 +32,7 @@ down)
     # _____ your code here _____
     echo "called Down script"
     notify-send "$(hostname): LINK IS DOWN !" --icon=dialog-error
+    [[ "$disable_ipv6" == "yes" ]] && sysctl -w net.ipv6.conf.all.disable_ipv6=0    # enable
 
     # _____ end down script ____
 ;;
