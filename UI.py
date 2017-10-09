@@ -218,7 +218,7 @@ class CommandLineInterface(UI):
                              "stop": ['stop'],
                              "auto on": ['auto on', 'aon'],
                              "auto off": ['auto off', 'aoff'],
-                             "list": ['list'],
+                             "list": ['list', 'ls'],
                              "mode main": ['mode main'],
                              "mode favorite": ['mode fav', 'mode favorite'],
                              "add favorite": ['save', 'add fav', 'add favorite'],
