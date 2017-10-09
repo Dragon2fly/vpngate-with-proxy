@@ -370,7 +370,6 @@ class VpnManager:
                         Timer(0.1, self.refresh_data, args=[False]).start()
                         time.sleep(1)
                     else:
-                        print('start the connection')
                         self.selected_index += 1
                         if self.selected_index >= len(self.servers_data[0]):
                             # current server list has run out, trigger the refresh on the next loop
