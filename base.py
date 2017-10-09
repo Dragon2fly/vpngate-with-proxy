@@ -360,7 +360,26 @@ class Setting:
                         break
 
         def disable_ipv6(user_input='@'):
-            pass
+            while user_input.lower() not in ['y', 'n', 'yes', 'no']:
+                user_input = input('Disable IPv6 during vpn?[yes|no]: ')
+            else:
+                self.network['disable_ipv6'] = 'no' if user_input in 'no' else 'yes'
+
+        def auto_activate(user_input='@'):
+            while user_input.lower() not in ['y', 'n', 'yes', 'no']:
+                user_input = input('Allow automation?[yes|no]: ')
+            else:
+                self.automation['activate'] = 'no' if user_input in 'no' else 'yes'
+
+        def auto_set_fetch_interval(user_input='@'):
+            while True:
+                try:
+                    user_input = float(input('How long should server list be refresh? (>= 0.5 hour): '))
+                except:
+                    pass
+                else:
+                    self.automation['fetch_interval'] = str(user_input)
+                    break
 
         flist = [allow_proxy,
                  set_proxy_addr, set_proxy_port,
@@ -375,24 +394,32 @@ class Setting:
                  set_proto_filter, set_port_filter,
 
                  allow_log,
+
+                 auto_activate,
+                 auto_set_fetch_interval,
                  ]
 
         func = dict(zip((str(x) for x in range(1, len(flist)+1)), flist))
+        not_need_refresh_func = [str(x) for x in (4, 5, 7, 8, 14, 15, 16)]
 
         while 1:
             vals = list(self.network.values())
 
+            # network
             use_proxy, proxy, port, ip = vals[:4]
             fix_dns, dns = vals[6:8]
             ipv6, mode = vals[-2:]
+            mirrors = self.mirrors['url']
+            mirrors = mirrors.split(', ')
 
             # filter
             s_country, s_port, s_score = list(self.filter.values())[:3]
             proto, sort_by = list(self.filter.values())[3:]
-
             verbose = self.show_log['verbose']
-            mirrors = self.mirrors['url']
-            mirrors = mirrors.split(', ')
+
+            # automation
+            fetch_interval = self.automation["fetch_interval"]
+            activate = self.automation["activate"]
 
             print(ctext('\n ___Settings___', 'B'))
             print(ctext('\n Networking:', 'B'))
@@ -401,7 +428,7 @@ class Setting:
             print(ctext('    4. Fix dns leaking:', 'yB'), fix_dns)
             print(ctext('    5. DNS list: ', 'yB'), dns)
             print(ctext('    6. VPN gate\'s mirrors:', 'yB'), '%s ...' % mirrors[1])
-            print(ctext('    7. Disable ipv6:', 'yB'), '%s' % ipv6)
+            print(ctext('    7. Disable IP_v6:', 'yB'), '%s' % ipv6)
             print(ctext('    8. Mode:', 'yB'), '%s' % mode)
 
 
@@ -410,7 +437,11 @@ class Setting:
             print(ctext('    11. Country:', 'yB'), s_country)
             print(ctext('    12. Protocol:', 'yB'), proto, ctext('    13. VPN server\'s port: ', 'yB'), s_port)
 
-            print(ctext('   14. Show openvpn log:', 'B'), verbose)
+            print(ctext('    14. Show openvpn log:', 'B'), verbose)
+
+            print(ctext('\n Automation:', 'B'))
+            print(ctext('    15. Activate:', 'yB'), activate)
+            print(ctext('    16. Fetch interval:', 'yB'), fetch_interval)
 
             user_input = input('\nCommand or just Enter to continue: ')
             if user_input == '':
@@ -420,6 +451,8 @@ class Setting:
                 print("Invalid input!")
             else:
                 func[user_input]()
+                if user_input not in not_need_refresh_func:
+                    return True
 
 
 class FavoriteSevers(object):

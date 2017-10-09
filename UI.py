@@ -308,8 +308,9 @@ class CommandLineInterface(UI):
                 self.display()
 
         def config(arg):
-            self.config.get_input()
-            refresh(arg)
+            need_refresh = self.config.get_input()
+            if need_refresh:
+                refresh(arg)
 
         def next_page(arg):
             self.set_page("next")
@@ -438,6 +439,11 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # todo: enforce the tcp communication always wait for response
+
+    if not sys.argv[1:2]:
+        from pathlib import Path
+        home = str(Path.home())
+        sys.argv.append(home)
 
     my_conf = Setting()
     my_conf.check()
