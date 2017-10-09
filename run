@@ -12,8 +12,11 @@ user_home=($HOME)
 control=$1
 arg=$2
 
+# assign the right python version here
+PY=python3.6
+
 # __________check setup__________
-python3 setup.py $user_home || exit 1
+sudo $PY setup.py $user_home || exit 1
 
 # __________ parse argv __________
 if [ "$control" == "stop" ]; then
@@ -27,6 +30,10 @@ if [ "$control" == "log" ]; then
    exit
 fi
 
+if [ "$control" == "restart" ]; then
+   sudo kill `pgrep -f "vpn_manager.py"`    # don't worry, the manager will cleanup before exiting
+fi
+
 # __________check if server is running__________
 res=`pgrep -af "vpn_manager.py"`
 
@@ -37,9 +44,9 @@ fi
 
 # __________launch server if not exist__________
 if [ -z "$res" ]; then
-    sudo python3 -u vpn_manager.py $user_home
+    sudo $PY -u vpn_manager.py $user_home
 fi
 
 # __________launch UI client__________
 sleep 0.2
-python3 UI.py $user_home
+$PY UI.py $user_home

@@ -2,6 +2,14 @@
 # -*- coding: utf-8 -*-
 __author__ = "duc_tin"
 
+# check py version
+import sys
+py_ver = sys.version_info[0:2]
+print(py_ver, py_ver < (3, 6))
+if py_ver < (3, 6):
+    print("This program required python3.6+ to run!")
+    sys.exit(1)
+
 from base import *
 from subprocess import check_output, call
 
