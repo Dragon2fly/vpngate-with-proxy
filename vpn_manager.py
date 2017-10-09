@@ -7,29 +7,53 @@ import signal
 import socketserver
 import time
 import re
+import traceback
+from io import StringIO
 from fcntl import fcntl, F_GETFL, F_SETFL
-from subprocess import call, run, Popen, PIPE
-from base import Setting
+from subprocess import call, run, Popen, PIPE, STDOUT
+from base import Setting, FavoriteSevers, is_IF_ok
 from fetcher import Fetcher
+from threading import Timer
+from traceback import print_tb
 
+# merge the output stream for log into 1 file
+sys.stderr = sys.stdout
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         # self.request is the TCP socket connected to the client
         UI_data = self.request.recv(1024).strip()
         UI_sock = self.request
-        callback(UI_data, UI_sock)
-        UI_sock.close()
+
+        # this run in a thread so we must catch the error again
+        try:
+            callback(UI_data, UI_sock)
+        except Exception as e:
+            buff = StringIO()
+            traceback.print_tb(e.__traceback__, file=buff)
+            buff.seek(0)
+            for line in buff:
+                my_vpn_manager.logger(b'ERROR' + line.encode())
+            else:
+                del buff
+                my_vpn_manager.logger(b'ERROR  ' + repr(e).encode())
+        finally:
+            UI_sock.close()
 
 
 class VpnManager:
     def __init__(self):
         self.my_config = Setting()
         self.my_config.load()
+        self.ipv6_status = int(run('cat /proc/sys/net/ipv6/conf/all/disable_ipv6'.split(), stdout=PIPE).stdout.strip())
 
         # vpn servers data
         self.fetcher = Fetcher(self.logger)
-        self.servers_data = (None, None)        # hold (sorted list, vpn_dict)
+        self.servers_data = (None, None)                    # hold (sorted list, vpn_dict)
+        self.my_favorites = FavoriteSevers()                # hold list of saved server
+        self.mode = self.my_config.network['mode']          # main | favorite
+        self.current_server = None
+        self.past_servers = []
 
         # get current cursor position of the log file
         # updated everytime a new vpn connection is make
@@ -48,9 +72,12 @@ class VpnManager:
         self.isConnecting = False
 
         # automation control
+        self.is_on_duty = False
         self.selected_index = -1
         self.next_refresh_time = 0
+        self.refresh_status = 0             # 0|1|2 = unknown | refreshing | finished
 
+        #
         self.dns_orig = '/etc/resolv.conf.bak'
         self.dns = ''
 
@@ -65,13 +92,30 @@ class VpnManager:
         ref = os.fork()
         if ref:
             sys.exit()
-        os.setsid()     # stop receiving any control signal from original terminal
+        os.setsid()     # stop receiving any control signal from original terminal, go daemon
 
         self.communicator.allow_reuse_address = True
         self.communicator.timeout = 0.1
         self.channel = None
         self.recv = ''
-        self.time_interval = 0.3  # second
+        self.time_interval = 0.5  # second
+
+    def refresh_data(self, dont_care=True):
+        # prevent multiple calling at the same time
+        if self.refresh_status == 1:
+            return
+        else:
+            self.refresh_status = 1
+
+        self.servers_data = self.fetcher.fetch_data()
+        self.next_refresh_time = time.time() + float(self.my_config.automation["fetch_interval"]) * 3600
+        self.new_ftell = self.log.tell()
+        self.selected_index = -1
+
+        if dont_care:
+            self.refresh_status = 0
+        else:
+            self.refresh_status = 2
 
     def dns_manager(self, action='backup'):
         network = self.my_config.network
@@ -127,19 +171,27 @@ class VpnManager:
         self.selected_index = idx_num
 
         if self.isConnecting:
-            self.vpn_terminate()
+            self.vpn_terminate(False)
 
         self.my_config.load()  # reflect any change if it is
 
-        sorted_vpn, vpn_dict = self.servers_data
-        vpn_server = vpn_dict[sorted_vpn[idx_num]]
-        self.connected_vpn = "%s " % idx_num + str(vpn_server)
+        if self.mode == 'main':
+            sorted_vpn, vpn_dict = self.servers_data
+            self.current_server = vpn_dict[sorted_vpn[idx_num]]
+        else:  # mode favorite
+            self.current_server = self.my_favorites[idx_num]
 
-        vpn_file = vpn_server.write_file()
+        self.connected_vpn = "%s " % idx_num + str(self.current_server)
+        # ensure the ip is always at the bottom of the list
+        if self.current_server.ip in self.past_servers:
+            self.past_servers.remove(self.current_server.ip)
+        self.past_servers.append(self.current_server.ip)
+
+        vpn_file = self.current_server.write_file()
         vpn_file.close()
 
         command = ['openvpn', '--config', os.path.abspath(vpn_file.name)]
-        self.ovpn_process = Popen(command, stdout=PIPE, stdin=PIPE)
+        self.ovpn_process = Popen(command, stdout=PIPE, stdin=PIPE, stderr=PIPE)
 
         # get current p.stdout flags
         flags = fcntl(self.ovpn_process.stdout, F_GETFL)
@@ -150,6 +202,23 @@ class VpnManager:
 
         self.new_ftell = self.log.tell()
 
+    def vpn_terminate(self, is_broken=True, is_dead=False):
+        if not is_dead:
+            self.ovpn_process.send_signal(signal.SIGINT)
+        else:
+            self.logger(b'OpenVpn has self-terminated or been killed by outside signal!\n')
+
+        self.ovpn_process.wait()
+        for line in self.ovpn_process.stdout:
+            self.logger(line, source=b'[OpenVpn]')
+
+        self.logger(b'VPN tunnel is terminated\n')
+        self.isConnecting = False
+        self.connected_vpn = ''
+        self.post_action('down')
+        if is_broken:
+            self.logger(b'done')
+
     def signal_handler(self, signals, frame):
         self.logger(b"Signal received: "+bytes(repr(signals), "ascii"))
 
@@ -158,24 +227,19 @@ class VpnManager:
             all_logs = re.findall(r"vpn_\d{8}.log", ''.join(os.listdir("logs")))
             for log in all_logs:
                 path = "logs/"+log
-                if (time.time() - os.path.getmtime(path)) / 86400 > 3:
+                if int(time.strftime("%Y%m%d")) - int(log[-12:-4]) >= 3:
                     os.remove(path)
+
+            # do it again after
+            signal.alarm(24 * 60 * 60)
             return
         else:
             # exit at SIGINT, SIGTERM, whatever
             self.exit = True
 
-    def vpn_terminate(self):
-        self.ovpn_process.send_signal(signal.SIGINT)
-        self.ovpn_process.wait()
-        self.logger(b'VPN tunnel is terminated\n')
-        self.isConnecting = False
-        self.connected_vpn = ''
-        self.post_action('down')
-
-    def handle_request(self, cmd, channel):
+    def handle_request(self, cmd, channel=None):
+        #
         self.logger(cmd, source=b'[UI]')
-        # print(cmd)
         if b'connect' in cmd:
             idx_num = int(cmd.split()[-1])
             self.vpn_connect(idx_num)
@@ -188,12 +252,15 @@ class VpnManager:
             self.logger(b'Automation temporarily off: UI said STOP')
 
         elif cmd == b'next':
-            if self.selected_index < len(self.servers_data[0])-1:
+            l = len(self.servers_data[0])-1 if self.servers_data[0] else len(self.my_favorites)
+            if self.selected_index < l:
                 self.vpn_connect(self.selected_index + 1)
                 channel.sendall(b'1')
             else:
                 channel.sendall(b'0')
+
         elif cmd == b'prev':
+            l = len(self.servers_data[0]) - 1 if self.servers_data[0] else len(self.my_favorites)
             if self.selected_index > 0:
                 self.vpn_connect(self.selected_index - 1)
                 channel.sendall(b'1')
@@ -219,16 +286,44 @@ class VpnManager:
             channel.sendall(str(self.new_ftell).encode())
 
         elif cmd == b'refresh':
-            self.servers_data = self.fetcher.fetch_data()
-            self.next_refresh_time = time.time() + float(self.my_config.automation["fetch_interval"]) * 3600
-            self.new_ftell = self.log.tell()
+            self.refresh_data()
 
-        elif cmd == b'auto off':
+        elif cmd in [b'auto off', b'aoff']:
             self.my_config.automation['activate'] = 'no'
             self.my_config.write()
-        elif cmd == b'auto on':
+        elif cmd in [b'auto on', b'aon']:
             self.my_config.automation['activate'] = 'yes'
             self.my_config.write()
+
+        elif cmd in [b'add fav', b'save']:
+            # print(self.current_server)
+            self.my_favorites.add(self.current_server)
+        elif b'remove' in cmd:
+            if self.mode != 'favorite':
+                self.logger(b'This action is only valid in favorite mode')
+                return
+            else:
+                idx = list(map(int, cmd.split()[1:]))
+                self.my_favorites.remove(idx)
+
+        elif cmd == b'mode main':
+            self.mode = 'main'
+            self.my_config.network['mode'] = 'main'
+            self.my_config.write()
+        elif cmd in [b'mode fav', b'mode favorite']:
+            self.mode = 'favorite'
+            self.my_config.network['mode'] = 'favorite'
+            self.my_config.write()
+        elif cmd in [b'alive', b'check', b'check alive']:
+            if self.mode != 'favorite':
+                self.logger(b'This action is only valid in favorite mode')
+                return
+            else:
+                favorite_dict = self.my_favorites.dict
+                self.fetcher.reload_setting()
+                self.fetcher._probe(favorite_dict)
+                alive_idx = [str(idx) for idx, x in enumerate(self.my_favorites) if x.name in favorite_dict]
+                self.logger(f"fav alive = {' '.join(alive_idx)}".encode())
 
     def log_open(self):
         """ Open the log of today"""
@@ -258,8 +353,65 @@ class VpnManager:
         self.log.write(msg)
         self.log.flush()
 
+    def automate(self):
+        if not is_IF_ok():
+            return
+
+        if not self.isConnecting:
+            if not self.is_on_duty:
+                self.is_on_duty = True
+                # try to connect to the next server
+                self.logger(b'___ Automation entry point: auto connect ___')
+
+            if self.my_config.network['mode'] == 'main':
+                if self.refresh_status == 0:
+                    if not self.servers_data[0]:
+                        # spam a thread so that main loop is not locked up
+                        Timer(0.1, self.refresh_data, args=[False]).start()
+                        time.sleep(1)
+                    else:
+                        print('start the connection')
+                        self.selected_index += 1
+                        if self.selected_index >= len(self.servers_data[0]):
+                            # current server list has run out, trigger the refresh on the next loop
+                            self.servers_data = (None, None)
+                        else:
+                            self.logger(b'Start new connection')
+                            self.vpn_connect(self.selected_index)
+                            self.is_on_duty = False
+
+                elif self.refresh_status == 2:
+                    self.refresh_status = 0
+                    if not self.servers_data[0]:
+                        # temporarily turn off automation
+                        self.my_config.automation['activate'] = 'no'
+                        self.logger(b'Automation temporarily off: No data to work with!')
+                        self.is_on_duty = False
+
+            else:  # favorite list
+                self.selected_index += 1
+                if self.selected_index >= len(self.my_favorites):
+                    print(len(self.my_favorites))
+                    # the favorite list has run out, change mode to 'main'
+                    # and go to the next loop
+                    self.logger(b'Favorite list exceeded! Switch to main list.')
+                    self.mode = self.my_config.network['mode'] = 'main'
+                    self.my_config.write()      # should we keep user setting or prior to be able to connect?
+                else:
+                    self.logger(b'Start new connection')
+                    self.vpn_connect(self.selected_index)
+                    self.is_on_duty = False
+
+        # self refreshing the data
+        elif self.my_config.automation["fetch_interval"] >= "0.5":
+            if time.time() >= self.next_refresh_time and self.refresh_status == 0:
+                self.logger(b'___ Automation entry point: auto refresh data ___')
+                # spam a thread so that main loop is not locked up
+                Timer(0.1, self.refresh_data).start()
+                time.sleep(1)
+
     def loop(self):
-        msg = "service has started at {}:{}\n".format(self.host, self.port).encode('ascii')
+        msg = "=> service has started at {}:{}\n".format(self.host, self.port).encode()
         self.logger(msg)
         self.self_status()
 
@@ -280,48 +432,29 @@ class VpnManager:
                         self.dropped_time = 0
                         self.post_action('up')
                         self.logger(b'VPN tunnel established successfully\n')
-                        self.logger(b'Ctrl+C to quit VPN\n')
+                        self.logger(b'done\n')
                     elif b'Restart pause, ' in line and self.dropped_time <= self.max_retry:
                         self.dropped_time += 1
                         self.logger(('Vpn has restarted %s time\n' % self.dropped_time).encode('ascii'))
                     elif self.dropped_time == self.max_retry or \
-                                    b'Connection timed out' in line or \
-                                    b'Cannot resolve' in line:
+                                    any(errmsg in line for errmsg in [b'Connection timed out',
+                                                                      b'Cannot resolve',
+                                                                      b'No route to host',
+                                                                      b'Network is unreachable']):
                         self.dropped_time = 0
-                        self.logger(line)
                         self.logger(b'Terminate vpn\n')
                         self.vpn_terminate()
 
                     line = p.stdout.readline()
                     time.sleep(0.05)
 
+                if not p.poll() is None and self.isConnecting:
+                    # terminated by outside signal
+                    self.vpn_terminate(is_dead=True)
+
             # automation
             if self.my_config.automation['activate'] == 'yes':
-                if not self.isConnecting:
-                    # try to connect to the next server
-                    self.logger(b'___ Automation entry point ___')
-                    if not self.servers_data[0]:
-                        self.servers_data = self.fetcher.fetch_data()
-                        self.next_refresh_time = time.time() + float(self.my_config.automation["fetch_interval"]) * 3600
-
-                    if not self.servers_data[0]:
-                        # temporarily turn off automation
-                        self.my_config.automation['activate'] = 'no'
-                        self.logger(b'Automation temporarily off: No data to work with!')
-                    else:
-                        self.selected_index += 1
-                        if self.selected_index >= len(self.servers_data[0]):
-                            # current server list has run out, trigger the refresh on the next loop
-                            self.servers_data = (None, None)
-                            self.selected_index = -1
-                        else:
-                            self.vpn_connect(self.selected_index)
-
-                if self.my_config.automation["fetch_interval"] >= "0.5":
-                    if time.time() >= self.next_refresh_time:
-                        self.logger(b'___ Automation entry point ___')
-                        self.fetcher.fetch_data()
-                        self.next_refresh_time = time.time() + float(self.my_config.automation["fetch_interval"]) * 3600
+                self.automate()
 
             if self.exit:
                 # clean up
@@ -352,15 +485,17 @@ class VpnManager:
                    "pid:{}\n" \
                    "host:{}\n"\
                    "port:{}\n" \
-                   "vpn:{}"
+                   "vpn:{}\n"
 
         with open("logs/manager.log", "w+") as status:
             if self.exit:
                 stat = template.format(0,'','','','')
+                self.past_servers = []
             else:
                 stat = template.format(1,os.getpid(), self.host, self.port, self.connected_vpn)
 
             status.write(stat)
+            status.write('\n'.join(self.past_servers))
 
 if __name__ == '__main__':
     my_vpn_manager = VpnManager()
@@ -374,4 +509,15 @@ if __name__ == '__main__':
 
     callback = my_vpn_manager.handle_request
     print("vpn manager has started")
-    my_vpn_manager.loop()
+    try:
+        my_vpn_manager.loop()
+    except Exception as e:
+        buff = StringIO()
+        traceback.print_tb(e.__traceback__, file=buff)
+        buff.seek(0)
+        for line in buff:
+            my_vpn_manager.logger(b'ERROR' + line.encode())
+        else:
+            my_vpn_manager.logger(b'ERROR  ' + repr(e).encode())
+    finally:
+        my_vpn_manager.log.close()
