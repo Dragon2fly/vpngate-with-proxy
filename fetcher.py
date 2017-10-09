@@ -17,7 +17,7 @@ class Fetcher:
     def __init__(self, logger):
         self.config = Setting()
         self.logger = partial(logger, source=b'[fetcher]')
-        
+
         # data for using across the class method
         self.filters = self.network = self.mirrors = None
 
@@ -148,13 +148,17 @@ class Fetcher:
 
         self.logger(bytes('Deleted %d dead servers out of %d' % (count, total), 'ascii'))
 
-    def fetch_data(self):
+    def reload_setting(self):
         # get the newest config
         self.config.load()
         self.filters = self.config.filter
         self.network = self.config.network
         self.mirrors = self.config.mirrors
         self.mirrors = self.mirrors['url'].split(', ')
+
+    def fetch_data(self):
+        # get the newest config
+        self.reload_setting()
 
         # fetch data from vpngate.net
         self.logger(b"fetching data")
@@ -169,8 +173,8 @@ class Fetcher:
         if vpn_dict:
             if s_country != 'all':
                 vpn_dict = dict([vpn for vpn in vpn_dict.items()
-                                if re.search(r'\b%s\b' % s_country, vpn[1].country_long.lower() + ' '
-                                             + vpn[1].country_short.lower())])
+                                 if re.search(r'\b%s\b' % s_country, vpn[1].country_long.lower() + ' '
+                                              + vpn[1].country_short.lower())])
             if s_port != 'all':
                 if s_port[0] == '>':
                     vpn_dict = dict([vpn for vpn in vpn_dict.items() if int(vpn[1].port) > int(s_port[1:])])
