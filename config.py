@@ -121,7 +121,7 @@ def get_input(s, option):
             while not re.match('[a-zA-Z0-9., ]*$', user_input.strip()):
                 user_input = raw_input('DNS server(s) with "," separated or Enter to use default: ')
             if user_input:
-                s.dns['dns'] = user_input.replace(' ', '').split(',')
+                s.dns['dns'] = user_input
             else:
                 s.dns['dns'] = '8.8.8.8, 84.200.69.80, 208.67.222.222'
 
