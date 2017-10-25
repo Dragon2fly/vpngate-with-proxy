@@ -240,12 +240,12 @@ class Connection:
                 self.messages['debug'].appendleft(vpn_data)
                 queue.put((0, {}))
 
-        except requests.exceptions.ConnectionError as e:
-            self.messages['debug'].appendleft('ConnectionError')
-            self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
-            queue.put((0, {}))
         except requests.exceptions.ConnectTimeout as e:
             self.messages['debug'].appendleft('ConnectionTimeout')
+            self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
+            queue.put((0, {}))
+        except requests.exceptions.ConnectionError as e:
+            self.messages['debug'].appendleft('ConnectionError')
             self.messages['debug'].appendleft(' Connection to gate ' + url + ' failed')
             queue.put((0, {}))
         except requests.exceptions.RequestException as e:
@@ -1041,7 +1041,7 @@ vpn_connect = Connection()  # initiate network parameter
 
 # check_dependencies:
 required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0, 'wmctrl': 0}
-for module in ['pip', 'requests', 'urwid']:
+for module in ['requests', 'urwid', 'pip']:
     try:
         __import__(module, globals(), locals(), [], -1)
     except ImportError:
