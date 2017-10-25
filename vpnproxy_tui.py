@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.35"
+__version__ = "1.4"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -284,7 +284,7 @@ class Connection:
             }
 
         else:
-            proxies = {'no': 'pass',}
+            proxies = {'no': 'pass', }
 
         i = 0
         while i < len(mirrors):
@@ -1014,7 +1014,7 @@ class Display:
                 self.ovpn.kill = True
 
             if cmd == 'reconnect':
-                self.chosen = max(self.chosen,0)
+                self.chosen = max(self.chosen, 0)
                 self.connect2vpn()
 
             self.update_GUI()
@@ -1036,17 +1036,14 @@ class Display:
 # ------------------------- Main  -----------------------------------
 # dead gracefully
 
-
 vpn_connect = Connection()  # initiate network parameter
 
 # check_dependencies:
-required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0, 'setuptools':0, 'wmctrl': 0}
-for module in ['requests', 'urwid', 'setuptools', 'pip']:
+required = {'openvpn': 0, 'requests': 0, 'urwid': 0, 'setuptools': 0, 'wmctrl': 0}
+for module in ['requests', 'urwid', 'setuptools']:
     try:
         __import__(module, globals(), locals(), [], -1)
     except ImportError:
-        if 'pip' in module:
-            module = 'python-' + module
         required[module] = 1
 
 if not os.path.exists('/usr/sbin/openvpn'):
@@ -1057,6 +1054,11 @@ if not os.path.exists('/usr/sbin/openvpn'):
 
 need = sorted([p for p in required if required[p]])
 if need:
+    try:
+        out = check_output(['pip', '--version'])
+    except Exception:
+        need.insert(0, 'python-pip')
+
     print ctext('\n**Lack of dependencies**\n', 'rB')
     env = dict(os.environ)
     if vpn_connect.use_proxy == 'yes':
