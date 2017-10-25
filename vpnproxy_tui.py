@@ -1040,7 +1040,7 @@ class Display:
 vpn_connect = Connection()  # initiate network parameter
 
 # check_dependencies:
-required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0, 'wmctrl': 0}
+required = {'openvpn': 0, 'python-pip': 0, 'requests': 0, 'urwid': 0, 'setuptools':0, 'wmctrl': 0}
 for module in ['requests', 'urwid', 'pip']:
     try:
         __import__(module, globals(), locals(), [], -1)
