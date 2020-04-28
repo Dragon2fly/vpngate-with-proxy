@@ -2,11 +2,14 @@
 VPN GATE client for linux
 * Be able to connect to open vpn servers at **http://www.vpngate.net/en/** directly or through proxy
 * Auto add DNS to fix DNS leak.
-* Auto filter out dead VPN servers. (updated on August 16th)
+* Auto filter out dead VPN servers.
 * Can execute user defined script after vpn_tunnel is established or broken.
 
+**Note**:
 Work on Debian and Redhat based system. 
-Tested on **Ubuntu**, **Raspbian**, **Fedora**, **Bunsen**.
+~~Tested on **Ubuntu**, **Raspbian**, **Fedora**, **Bunsen**~~.
+ New commit (2020/04/28) fixed it to work with python 3.6+ and only tested on **Ubuntu 20.04**.
+
 
 I will wrap SoftEther_vpn later when I have time. You are welcome to fork this repo and wrap SoftEther_vpn yourself.
 
@@ -27,9 +30,9 @@ please make a new issue at https://github.com/Dragon2fly/vpngate-with-proxy/issu
 
 
 # Dependency:
-* **python 2.7.x**: should already be shipped with your linux
+* **python ~~2.7.x~~ 3.6+**: should already be shipped with your linux
 
-Except *python 2.7.x*, all below dependencies should be automatically installed at first run.
+Except *python ~~2.7.x~~3.6+*, all below dependencies should be automatically installed at first run.
 * **openvpn**: ```$ sudo apt-get install openvpn```
 * **python-requests**: ```$ sudo apt-get install python-requests```
 * **python-urwid 1.3+**: ```$ sudo apt-get install python-urwid``` , for `tui` version (terminal user interface)

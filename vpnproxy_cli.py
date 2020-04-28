@@ -13,7 +13,7 @@ import base64
 import time
 import datetime
 from config import *
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 from subprocess import call, Popen, PIPE, check_output
 
@@ -28,11 +28,12 @@ if euid != 0:
 pkg_mgr = None
 check_ls = ["apt-get", "yum", "dnf"]
 for pkg in check_ls:
-    if check_output("whereis -b {}".format(pkg).split()).strip().split(":")[1]:
+    if check_output("whereis -b {}".format(pkg).split(), universal_newlines=True).strip().split(":")[1]:
         pkg_mgr = pkg
 
 # Define some mirrors of vpngate.net
 mirrors = ["http://www.vpngate.net"]  # add your mirrors to config.ini file, not here
+
 
 # TODO: add user manual to this and can be access by h, help.
 # add option to change DNS differ from google
@@ -48,10 +49,10 @@ class Server:
         self.country_short = data[6]
         self.NumSessions = data[7]
         self.uptime = data[8]
-        self.logPolicy = "2wk" if data[11]=="2weeks" else "inf"
-        self.config_data = base64.b64decode(data[-1])
+        self.logPolicy = "2wk" if data[11] == "2weeks" else "inf"
+        self.config_data = base64.b64decode(data[-1]).decode()
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
-        port = re.findall('remote .+ \d+', self.config_data)
+        port = re.findall(r'remote .+ \d+', self.config_data)
         if not port:
             self.port = '1'
         else:
@@ -77,7 +78,7 @@ class Server:
     def __str__(self):
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
-        uptime = re.split(',|\.', str(uptime))[0]
+        uptime = re.split('[,.]', str(uptime))[0]
         txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
                self.ip, self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
@@ -89,20 +90,20 @@ def get_data():
     if use_proxy == 'yes':
         ping_name = ['ping', '-w 2', '-c 2', proxy]
         ping_ip = ['ping', '-w 2', '-c 2', ip]
-        res1, err1 = Popen(ping_name, stdout=PIPE, stderr=PIPE).communicate()
-        res2, err2 = Popen(ping_ip, stdout=PIPE, stderr=PIPE).communicate()
+        res1, err1 = Popen(ping_name, stdout=PIPE, stderr=PIPE, universal_newlines=True).communicate()
+        res2, err2 = Popen(ping_ip, stdout=PIPE, stderr=PIPE, universal_newlines=True).communicate()
 
         if err1 and not err2:
-            print ctext('Warning: ', 'yB'),
-            print "Cannot resolve proxy's hostname"
+            print(ctext('Warning: ', 'yB'), end=' ')
+            print("Cannot resolve proxy's hostname")
             proxy = ip
         if err1 and err2:
-            print ' Ping proxy got error: ', ctext(err1, 'r')
-            print ' Check your proxy setting'
+            print(' Ping proxy got error: ', ctext(err1, 'r'))
+            print(' Check your proxy setting')
         if not err1 and '100% packet loss' in res1:
-            print ctext('Warning:', 'yB') + ctext('Proxy not response to ping', 'y')
-            print ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead",
-                        'y')
+            print(ctext('Warning:', 'yB') + ctext('Proxy not response to ping', 'y'))
+            print(ctext("Either proxy's security not allow it to response to ping packet\n or proxy itself is dead",
+                        'y'))
 
         proxies = {
             'http': 'http://' + proxy + ':' + port,
@@ -115,7 +116,7 @@ def get_data():
     i = 0
     while i < len(mirrors):
         try:
-            print ctext('using gate: ', 'B'), mirrors[i]
+            print(ctext('using gate: ', 'B'), mirrors[i])
             gate = mirrors[i] + '/api/iphone/'
             vpn_data = requests.get(gate, proxies=proxies, timeout=3).text.replace('\r', '')
 
@@ -126,17 +127,17 @@ def get_data():
             servers = {s[0]: Server(s) for s in servers[2:] if len(s) > 1}
             return servers
         except requests.exceptions.RequestException as e:
-            print e
-            print 'Connection to gate ' + ctext(mirrors[i], 'B') + ctext(' failed\n', 'rB')
+            print(e)
+            print('Connection to gate ' + ctext(mirrors[i], 'B') + ctext(' failed\n', 'rB'))
             i += 1
     else:
-        print 'Failed to get VPN servers data\nCheck your network setting and proxy'
+        print('Failed to get VPN servers data\nCheck your network setting and proxy')
         sys.exit(1)
 
 
 def refresh_data():
     # fetch data from vpngate.net
-    print "fetching data"
+    print("fetching data")
     vpnlist = get_data()
 
     if s_country != 'all':
@@ -154,7 +155,7 @@ def refresh_data():
     if s_score != 'all':
         vpnlist = dict([vpn for vpn in vpnlist.items() if int(vpn[1].score) > int(s_score)])
 
-    print "Filtering out dead VPN..."
+    print("Filtering out dead VPN...")
     probe(vpnlist)
 
     if sort_by == 'speed':
@@ -166,8 +167,8 @@ def refresh_data():
     elif sort_by == 'up time':
         sort = sorted(vpnlist.keys(), key=lambda x: int(vpnlist[x].uptime))
     else:
-        print '\nValueError: sort_by must be in "speed|ping|score|up time" but got "%s" instead.' % sort_by
-        print 'Change your setting by "$ ./vpnproxy config"\n'
+        print('\nValueError: sort_by must be in "speed|ping|score|up time" but got "%s" instead.' % sort_by)
+        print('Change your setting by "$ ./vpnproxy config"\n')
         sys.exit()
 
     return sort, vpnlist
@@ -188,10 +189,10 @@ def probe(vpndict):
                 s.connect((ip, int(port)))  # connect to proxy server
                 ip_, port_ = target[i]
                 data = 'CONNECT %s:%s HTTP/1.0\r\n\r\n' % (ip_, port_)
-                s.send(data)
+                s.send(data.encode())
                 dead = False
                 try:
-                    response = s.recv(100)
+                    response = s.recv(100).decode()
                 except socket.timeout:
                     dead = True
 
@@ -213,7 +214,7 @@ def probe(vpndict):
                 except socket.timeout:
                     queue.put(servers[i])
                 except Exception as e:
-                    #print e
+                    # print e
                     queue.put(servers[i])
                 finally:
                     s.close()
@@ -221,7 +222,8 @@ def probe(vpndict):
 
     my_queue = Queue()
     chunk_len = 10  # reduce chunk_len will increase number of thread
-    my_chunk = [vpndict.keys()[i:i + chunk_len] for i in range(0, len(vpndict), chunk_len)]
+    all_names = list(vpndict.keys())
+    my_chunk = [all_names[i:i + chunk_len] for i in range(0, len(vpndict), chunk_len)]
     my_thread = []
     for chunk in my_chunk:
         t = Thread(target=is_alive, args=(chunk, my_queue))
@@ -237,7 +239,7 @@ def probe(vpndict):
         dead_server = my_queue.get()
         del vpndict[dead_server]
 
-    print 'Deleted %d dead servers out of %d' % (count, total)
+    print('Deleted %d dead servers out of %d' % (count, total))
 
 
 def post_action(when):
@@ -263,7 +265,7 @@ def dns_manager(action='backup', DNS='8.8.8.8'):
     dns_orig = '/etc/resolv.conf.bak'
 
     if not os.path.exists(dns_orig):
-        print ctext('Backup DNS setting', 'yB')
+        print(ctext('Backup DNS setting', 'yB'))
         backup = ['-aL', '/etc/resolv.conf', '/etc/resolv.conf.bak']
         call(['cp'] + backup)
 
@@ -273,10 +275,10 @@ def dns_manager(action='backup', DNS='8.8.8.8'):
         with open('/etc/resolv.conf', 'w+') as resolv:
             for dns in DNS:
                 resolv.write('nameserver ' + dns + '\n')
-        print ctext('\nChanged DNS', 'yB').center(38)
+        print(ctext('\nChanged DNS', 'yB').center(38))
 
     elif action == "restore":
-        print ctext('\nRestore DNS', 'yB')
+        print(ctext('\nRestore DNS', 'yB'))
         reverseDNS = ['-a', '/etc/resolv.conf.bak', '/etc/resolv.conf']
         call(['cp'] + reverseDNS)
 
@@ -290,38 +292,39 @@ def vpn_manager(ovpn):
     global dns, verbose, dropped_time
 
     command = ['openvpn', '--config', ovpn]
-    p = Popen(command, stdout=PIPE, stdin=PIPE)
+    p = Popen(command, stdout=PIPE, stdin=PIPE, universal_newlines=True)
     try:
         while p.poll() is None:
             line = p.stdout.readline()
             if verbose == 'yes':
-                print line,
+                print(line, end=' ')
             if 'Initialization Sequence Completed' in line:
                 dropped_time = 0
                 post_action('up')
-                print ctext('VPN tunnel established successfully'.center(40), 'B')
-                print 'Ctrl+C to quit VPN'.center(40)
+                print(ctext('VPN tunnel established successfully'.center(40), 'B'))
+                print('Ctrl+C to quit VPN'.center(40))
             elif 'Restart pause, ' in line and dropped_time <= max_retry:
                 dropped_time += 1
-                print ctext('Vpn has restarted %s time' % dropped_time, 'rB')
+                print(ctext('Vpn has restarted %s time' % dropped_time, 'rB'))
             elif dropped_time == max_retry or 'Connection timed out' in line or 'Cannot resolve' in line:
                 dropped_time = 0
-                print line
-                print ctext('Terminate vpn', 'B')
+                print(line)
+                print(ctext('Terminate vpn', 'B'))
                 p.send_signal(signal.SIGINT)
     except KeyboardInterrupt:
         p.send_signal(signal.SIGINT)
         p.wait()
-        print ctext('VPN tunnel is terminated'.center(40), 'B')
+        print(ctext('VPN tunnel is terminated'.center(40), 'B'))
     finally:
         post_action('down')
 
 
 def signal_term_handler(signal, frame):
     global SIGTERM
-    print '\nGot SIGTERM, start exiting\n'
+    print('\nGot SIGTERM, start exiting\n')
     SIGTERM = 1
     raise KeyboardInterrupt
+
 
 # ---------------------------- Main  --------------------------------
 # dead gracefully
@@ -355,12 +358,12 @@ if os.path.exists(config_file):
             get_input(cfg, args)
 
 else:
-    if not os.path.exists(user_home+'/.config/vpngate-with-proxy'):
-        os.makedirs(user_home+'/.config/vpngate-with-proxy')
+    if not os.path.exists(user_home + '/.config/vpngate-with-proxy'):
+        os.makedirs(user_home + '/.config/vpngate-with-proxy')
 
-    print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
+    print('\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n')
 
-    cfg.proxy['use_proxy'] = 'no' if raw_input(
+    cfg.proxy['use_proxy'] = 'no' if input(
         ctext('Do you need proxy to connect? ', 'B') + '(yes|[no]):') in 'no' else 'yes'
     if cfg.proxy['use_proxy'] == 'yes':
         proxy = port = ip = ''
@@ -374,23 +377,23 @@ else:
             ip = socket.gethostbyname(proxy)
 
         if proxy:
-            print ' You are using proxy: ' + ctext('%s:%s' % (proxy, port), 'pB')
-            useit = 'yes' if raw_input(
+            print(' You are using proxy: ' + ctext('%s:%s' % (proxy, port), 'pB'))
+            useit = 'yes' if input(
                 ctext(' Use this proxy? ', 'B') + '([yes]|no):') in 'yes' else 'no'
 
         if useit == 'no':
-            print ' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB')
+            print(' Input your http proxy such as ' + ctext('www.abc.com:8080', 'pB'))
             while 1:
                 try:
-                    proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
+                    proxy, port = input(' Your\033[95m proxy:port \033[0m: ').split(':')
                     ip = socket.gethostbyname(proxy)
                     port = port.strip()
                     if not 0 <= int(port) <= 65535:
                         raise ValueError
                 except ValueError:
-                    print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
-                    print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
-                    print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
+                    print(ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B'))
+                    print(' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5')
+                    print('       ' + ctext('port', 'B') + ' is a number in range 0-65535')
                 else:
                     break
         cfg.proxy['address'] = proxy
@@ -398,8 +401,7 @@ else:
         cfg.proxy['ip'] = ip
 
     get_input(cfg, 'config')
-    print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
-
+    print('\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n')
 
 if not os.path.exists("config.ini"):
     os.symlink(config_file, "config.ini")
@@ -411,10 +413,10 @@ if not os.path.exists("user_script.sh"):
 # ------------------- check_dependencies: ----------------------
 mirrors.extend(cfg.mirror['url'].split(', '))
 use_proxy, proxy, port, ip = cfg.proxy.values()
-sort_by = cfg.sort.values()[0]
+sort_by = cfg.sort['key']
 s_country, s_port, s_score = cfg.filter.values()
 dns_fix, dns = cfg.dns.values()
-verbose = cfg.openvpn.values()[0]
+verbose = cfg.openvpn['verbose']
 
 required = {'openvpn': 0, 'python-requests': 0}
 
@@ -428,18 +430,17 @@ if not os.path.exists('/usr/sbin/openvpn'):
 
 need = [p for p in required if required[p]]
 if need:
-    print ctext('\n**Lack of dependencies**', 'rB')
+    print(ctext('\n**Lack of dependencies**', 'rB'))
     env = dict(os.environ)
     env['http_proxy'] = 'http://' + proxy + ':' + port
     env['https_proxy'] = 'http://' + proxy + ':' + port
 
     for package in need:
-        print '\n___Now installing', ctext(package, 'gB')
-        print
+        print('\n___Now installing', ctext(package, 'gB'))
+        print()
         call([pkg_mgr, '-y', 'install', package], env=env)
 
     import requests
-
 
 # -------- all dependencies should be available after this line ----------------------
 dns_manager()
@@ -451,28 +452,28 @@ labels = [label.center(spaces[ind]) for ind, label in enumerate(labels)]
 connected_servers = []
 
 while True:
-    print ctext('Use proxy: ', 'B'), use_proxy,
-    print ' || ', ctext('Country: ', 'B'), s_country,
-    print ' || ', ctext('Min score: ', 'B'), s_score,
-    print ' ||', ctext('Portal:', 'B'), s_port
+    print(ctext('Use proxy: ', 'B'), use_proxy, end=' ')
+    print(' || ', ctext('Country: ', 'B'), s_country, end=' ')
+    print(' || ', ctext('Min score: ', 'B'), s_score, end=' ')
+    print(' ||', ctext('Portal:', 'B'), s_port)
 
     if not ranked:
-        print '\nNo server found for "%s"\n' % s_country
+        print('\nNo server found for "%s"\n' % s_country)
     else:
-        print ctext(''.join(labels), 'gB')
+        print(ctext(''.join(labels), 'gB'))
         for index, key in enumerate(ranked[:20]):
             text = '%2d:'.center(6) % index + str(vpn_list[key])
             if connected_servers and vpn_list[key].ip == connected_servers[-1]:
                 text = ctext(text, 'y')
             elif connected_servers and vpn_list[key].ip in connected_servers:
                 text = ctext(text, 'r')
-            print text
+            print(text)
 
     try:
         server_sum = min(len(ranked), 20)
-        user_input = raw_input(ctext('Vpn command: ', 'gB'))
+        user_input = input(ctext('Vpn command: ', 'gB'))
         if user_input.strip().lower() in ['q', 'quit', 'exit']:
-            print ctext('Goodbye'.center(40), 'gB')
+            print(ctext('Goodbye'.center(40), 'gB'))
             sys.exit()
         elif user_input.strip().lower() in ('r', 'refresh'):
             ranked, vpn_list = refresh_data()
@@ -489,23 +490,23 @@ while True:
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
             chose = int(user_input)
-            print time.ctime().center(40)
-            print ('Connect to ' + vpn_list[ranked[chose]].country_long).center(40)
-            print vpn_list[ranked[chose]].ip.center(40)
+            print(time.ctime().center(40))
+            print(('Connect to ' + vpn_list[ranked[chose]].country_long).center(40))
+            print(vpn_list[ranked[chose]].ip.center(40))
             connected_servers.append(vpn_list[ranked[chose]].ip)
             vpn_file = vpn_list[ranked[chose]].write_file()
             vpn_file.close()
             vpn_manager(os.path.abspath(vpn_file.name))
         else:
-            print 'Invalid command!'
-            print '  q(uit) to quit\n  r(efresh) to refresh table\n' \
-                  '  c(onfig) to change setting\n  number in range 0~%s to choose vpn\n' % (server_sum - 1)
+            print('Invalid command!')
+            print('  q(uit) to quit\n  r(efresh) to refresh table\n'
+                  '  c(onfig) to change setting\n  number in range 0~%s to choose vpn\n' % (server_sum - 1))
             time.sleep(3)
 
         if SIGTERM:
-            print ctext('Goodbye'.center(40), 'gB')
+            print(ctext('Goodbye'.center(40), 'gB'))
             sys.exit()
 
     except KeyboardInterrupt:
         time.sleep(0.5)
-        print "\n\nSelect another VPN server or 'q' to quit"
+        print("\n\nSelect another VPN server or 'q' to quit")

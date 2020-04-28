@@ -1,14 +1,14 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 __author__ = 'duc_tin'
 
-from Queue import Empty, Queue
+from queue import Empty, Queue
 from threading import Thread
 from subprocess import call, Popen, PIPE
 import datetime
 import select
 import signal, os, sys
-import socket, errno
+import socket
 import time
 
 
@@ -37,11 +37,11 @@ class InfoServer:
         try:
             self.sock.bind(self.server_address)
             self.sock.listen(self.backlog)
-            print rep_time(),  'listening'
+            print(rep_time(), 'listening')
 
             return True
-        except socket.errno, e:
-            print rep_time(),  e
+        except OSError as e:
+            print(rep_time(), e)
             return False
 
     def accept_it(self):
@@ -49,7 +49,7 @@ class InfoServer:
             self.client, addrr = self.sock.accept()
             self.readlist.append(self.client)
             self.is_connected = True
-            print rep_time(), 'Server: Connected with %s:%s' % addrr
+            print(rep_time(), 'Server: Connected with %s:%s' % addrr)
             return 'Connected'
         else:
             # reject all other request
@@ -64,11 +64,11 @@ class InfoServer:
             if not char:  # socket close signal
                 self.is_connected = False
                 self.readlist.remove(self.client)
-                print rep_time(), 'main disconnected'
+                print(rep_time(), 'main disconnected')
                 return ''
 
-            elif char=='\n':
-                return ''.join(data)
+            elif char == b'\n':
+                return b''.join(data).decode()
 
             else:
                 data.append(char)
@@ -78,6 +78,8 @@ class InfoServer:
             :type q_info: Queue
         """
         while True:
+            if self.is_dead:
+                return 0
 
             # try to bind the socket, only run one time
             while not self.is_listening:
@@ -85,14 +87,13 @@ class InfoServer:
                 time.sleep(2)
 
             # normal select protocol
-            readable, _, _ = select.select(self.readlist, [], [])
+            readable, _, _ = select.select(self.readlist, [], [], 1)
             for s in readable:
                 if s is self.sock:
                     # sigterm from indicator
                     if self.is_dead:
-                        print rep_time(), 'Server: Received dead signal'
+                        print(rep_time(), 'Server: Received dead signal')
                         self.sock.close()
-                        return 0
 
                     # signal from client
                     else:
@@ -104,20 +105,22 @@ class InfoServer:
                         data = self.recv_it()
                         q_info.put(data)
                     except socket.error as e:
-                        print rep_time(),  'Client die unexpectedly'
+                        print(rep_time(), 'Client die unexpectedly')
                         self.is_connected = False
                     except Exception as e:
-                        print rep_time(), e
+                        print(rep_time(), e)
 
     def send(self, msg):
-        if msg == 'dead':
+        msg = msg.encode()
+        if msg == b'dead':
             self.is_dead = True
             if self.is_connected:
                 self.sock.shutdown(socket.SHUT_RDWR)
-
+                print("shutdown socket")
+            return True
         elif self.is_connected:
             try:
-                self.client.sendall(msg + '\n')
+                self.client.sendall(msg + b'\n')
                 return True
             except socket.error:
                 return False
@@ -146,7 +149,7 @@ class InfoClient:
                 if self.last_msg:
                     self.send(self.last_msg)
 
-            except socket.error, e:
+            except socket.error as e:
                 # print rep_time(),  str(e)
                 time.sleep(2)
 
@@ -157,8 +160,8 @@ class InfoClient:
             if not char:  # socket close signal
                 self.is_connected = False
                 return ''
-            elif char == '\n':
-                return ''.join(data)
+            elif char == b'\n':
+                return b''.join(data).decode()
             else:
                 data.append(char)
 
@@ -174,8 +177,8 @@ class InfoClient:
                     data = self.recv_it()
                     if data:
                         q_cmd.put(data)
-                except socket.error as e:
-                    print rep_time(),  'Server die unexpectedly'
+                except OSError as e:
+                    print(rep_time(), 'Server die unexpectedly')
                     self.is_connected = False
             else:
                 self.connect()
@@ -184,9 +187,10 @@ class InfoClient:
         self.last_msg = msg
         if self.is_connected:
             try:
-                self.sock.sendall(msg+'\n')
+                msg = (msg + '\n').encode()
+                self.sock.sendall(msg)
                 return True
-            except socket.error:
+            except OSError:
                 return False
         else:
             return False
@@ -204,7 +208,8 @@ class VPNIndicator:
         self.APPINDICATOR_ID = 'myappindicator'
         self.icon1 = os.path.abspath('icon/connected.svg')
         self.icon2 = os.path.abspath('icon/connectnot.svg')
-        self.icon345 = [os.path.abspath(icon) for icon in ['icon/connecting1.svg','icon/connecting2.svg','icon/connecting3.svg']]
+        self.icon345 = [os.path.abspath(icon) for icon in
+                        ['icon/connecting1.svg', 'icon/connecting2.svg', 'icon/connecting3.svg']]
         self.hang = False
         self.is_connecting = False
         self.icon_th = 0
@@ -232,17 +237,17 @@ class VPNIndicator:
         if self.is_connecting:
             if self.icon_th == 3:
                 self.icon_th = 0
-            self.indicator.set_icon(self.icon345[self.icon_th])
+            self.indicator.set_icon_full(self.icon345[self.icon_th], "")
             self.icon_th += 1
         return True
 
     def reload(self, data_in):
         if data_in:
-            print rep_time(),  data_in[:12]
+            print(rep_time(), data_in[:12])
 
             self.last_recv = data_in.split(';')
             if 'connecting' in data_in:
-                print rep_time(),  'set blinking'
+                print(rep_time(), 'set blinking')
                 self.is_connecting = True
             else:
                 self.is_connecting = False
@@ -251,13 +256,13 @@ class VPNIndicator:
                 self.hang = False
                 self.status('', self.last_recv)
             elif 'successfully' in data_in:
-                self.indicator.set_icon(self.icon1)
+                self.indicator.set_icon_full(self.icon1, "")
                 self.status('', self.last_recv)
             elif 'terminate' in data_in:
-                self.indicator.set_icon(self.icon2)
+                self.indicator.set_icon_full(self.icon2, "")
                 self.status('', ['terminate'])
             elif 'Offline' in data_in and not self.hang:
-                self.indicator.set_icon(self.icon2)
+                self.indicator.set_icon_full(self.icon2, "")
                 self.status('', ["Offline"])
                 self.hang = True
             elif 'main exit' in data_in:
@@ -269,38 +274,38 @@ class VPNIndicator:
         menu = Gtk.Menu()
 
         # change focus to main program terminal
-        focus_main = Gtk.MenuItem('Show main')
+        focus_main = Gtk.MenuItem(label='Show main')
         focus_main.connect('activate', self.change_focus)
         menu.append(focus_main)
 
         menu.append(Gtk.SeparatorMenuItem())
 
         # show status popup
-        current_status = Gtk.MenuItem('VPN Status')
+        current_status = Gtk.MenuItem(label='VPN Status')
         current_status.connect('activate', self.status, self.last_recv)
         menu.append(current_status)
 
         # connect to the next vpn on the list
-        next_vpn = Gtk.MenuItem('Next VPN')
+        next_vpn = Gtk.MenuItem(label='Next VPN')
         next_vpn.connect('activate', self.send_cmd, 'next')
         menu.append(next_vpn)
 
         menu.append(Gtk.SeparatorMenuItem())
 
         # stop vpn
-        stop_vpn = Gtk.MenuItem('Stop VPN')
+        stop_vpn = Gtk.MenuItem(label='Stop VPN')
         stop_vpn.connect('activate', self.send_cmd, 'stop')
         menu.append(stop_vpn)
 
         # reconnect the current one
-        reco_vpn = Gtk.MenuItem('ReConnect')
+        reco_vpn = Gtk.MenuItem(label='ReConnect')
         reco_vpn.connect('activate', self.send_cmd, 'reconnect')
         menu.append(reco_vpn)
 
         menu.append(Gtk.SeparatorMenuItem())
 
         # quit button
-        item_quit = Gtk.MenuItem('Quit indicator')
+        item_quit = Gtk.MenuItem(label='Quit indicator')
         item_quit.connect('activate', self.handler, '')
         menu.append(item_quit)
 
@@ -309,12 +314,19 @@ class VPNIndicator:
 
     def quit(self, source=None):
         # send dead signal to tcp server
+        print('quit now 4')
         self.send('dead')
+        print('quit now 3')
         notify.uninit()
+        print('quit now 2')
         Gtk.main_quit()
+        print('quit now 1')
 
     def change_focus(self, menu_obj):
-        call(['wmctrl', '-a', 'vpngate-with-proxy'])
+        try:
+            call(['wmctrl', '-a', 'vpngate-with-proxy'])
+        except FileNotFoundError:
+            self.status('', ['wmctrl'])
 
     def status(self, menu_obj, messages=''):
         """
@@ -331,24 +343,25 @@ class VPNIndicator:
             summary = 'Connected to main program'
             body = ''
         elif 'successfully' in messages[0]:
-            print rep_time(),  messages[1:]
+            print(rep_time(), messages[1:])
             tags = ['Ping:', 'Speed:', 'Up time:', 'Season:', 'Log:', 'Score:', 'Protocol:', 'Portal:']
             msg = messages[1:3] + [item for items in zip(tags, messages[3:9]) for item in items]
             summary = 'VPN tunnel established'
 
-            body = '''
-            {:<20}{:<15}    {:>19} {:<15}
-            {:<18} {:<8} Mbps
-            {:<18}{:<15}   {:>20} {:<20}
-            {:<22}{:<15}
-            {:<21}{:<15}
-            '''.format(*msg)
+            body = '''{:<20}{:<15}    {:>19} {:<15}
+{:<18} {:<8} Mbps
+{:<18}{:<15}   {:>20} {:<20}
+{:<22}{:<15}
+{:<21}{:<15}'''.format(*msg)
         elif 'terminate' in messages[0]:
             summary = 'VPN tunnel has broken'
             body = 'Please choose a different server and try again'
         elif 'Offline' in messages[0]:
             summary = 'VPN program is offline'
             body = "Click VPN indicator and choose 'Quit' to quit"
+        elif 'wmctrl' in messages[0]:
+            summary = "'wmctrl' not found"
+            body = "please do: sudo apt install wmctrl"
         else:
             summary = 'Status unknown'
             body = "Waiting for connection from main program"
@@ -357,13 +370,13 @@ class VPNIndicator:
         self.notifier.show()
 
     def handler(self, signal_num, frame):
-        if signal_num==signal.SIGINT:
-            print rep_time(), 'Indicator: got SigInt'
+        if signal_num == signal.SIGINT:
+            print(rep_time(), 'Indicator: got SigInt')
         else:
             self.quit('')
 
     def send_cmd(self, menu_obj, arg):
-        print rep_time(),  'Indicator sent:', arg
+        print(rep_time(), 'Indicator sent:', arg)
         self.send(arg)
 
     def callback(self):
@@ -393,32 +406,33 @@ if __name__ == '__main__':
 
         satisfied = True
     except (ImportError, ValueError):
-        print >> sys.stderr, ' Lack of Gtk related modules! VPN indicator will not run!'
-        print >> sys.stderr, ' You should try "sudo apt-get install gir1.2-appindicator3-0.1 ' \
-                             'gir1.2-notify-0.7 python-gobject"'
+        print(' Lack of Gtk related modules! VPN indicator will not run!', file=sys.stderr)
+        print(' You should try "sudo apt-get install gir1.2-appindicator3-0.1 gir1.2-notify-0.7 python-gobject"',
+              file=sys.stderr)
         satisfied = False
         time.sleep(1)
 
     if satisfied:
-        another_me = Popen(['pgrep', '-f', "python vpn_indicator.py"], stdout=PIPE).communicate()[0]
+        another_me = Popen(['pgrep', '-f', "vpn_indicator.py"], stdout=PIPE, universal_newlines=True).communicate()[0]
         another_me = another_me.strip().split('\n')
 
         if len(another_me) > 1:
-            print rep_time(),  'exist another me', another_me[1:]
+            print(rep_time(), 'exist another me', another_me[1:])
             sys.exit()
 
         # queue for interacting between indicator and server
         q = Queue()
 
         server = InfoServer(8088)
-        t = Thread(target=server.check_io, args=(q,))     # shouldn't be daemon
+        t = Thread(target=server.check_io, args=(q,))  # shouldn't be daemon
+        t.daemon = True
         t.start()
 
         indicator = VPNIndicator(q, server.send)
         try:
             indicator.run()
         except Exception as e:
-            print rep_time(), 'Indicator:', e
+            print(rep_time(), 'Indicator:', e)
             if not server.is_dead:
                 server.send('dead')
         t.join()

@@ -12,7 +12,7 @@ type=$1
 arg=$2
 
 if [ "$type" == "cli" ]; then
-    sudo python vpnproxy_cli.py $user_home $arg
+    sudo python3 vpnproxy_cli.py $user_home $arg
 else
     if [ "$type" != "tui" ]; then
         arg=$type
@@ -21,8 +21,8 @@ else
     # check if this os is *buntu and launch vpn_indicator
     os_id=`cat /proc/version`
     target="buntu"
-    test "${os_id#*$target}" != "$os_id" && stdbuf -oL python vpn_indicator.py > logs/indicator.log &
+    test "${os_id#*$target}" != "$os_id" && stdbuf -oL ./vpn_indicator.py > logs/indicator.log &
 
     sleep 0.2
-    sudo python vpnproxy_tui.py $user_home $arg
+    sudo ./vpnproxy_tui.py $user_home $arg
 fi

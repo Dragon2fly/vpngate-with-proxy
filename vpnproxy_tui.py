@@ -1,9 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.4"
+__version__ = "1.5"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -13,7 +13,7 @@ import time
 import datetime
 from copy import deepcopy
 from config import *
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from subprocess import call, Popen, PIPE, check_output
 from threading import Thread
 from collections import deque, OrderedDict
@@ -30,7 +30,7 @@ if euid != 0:
 pkg_mgr = None
 check_ls = ["apt-get", "yum", "dnf"]
 for pkg in check_ls:
-    if check_output("whereis -b {}".format(pkg).split()).strip().split(":")[1]:
+    if check_output("whereis -b {}".format(pkg).split()).strip().split(b":")[1]:
         pkg_mgr = pkg
 
 # Threading
@@ -54,7 +54,7 @@ class Server:
         self.NumSessions = data[7]
         self.uptime = data[8]
         self.logPolicy = data[11]
-        self.config_data = base64.b64decode(data[-1])
+        self.config_data = base64.b64decode(data[-1]).decode()
         self.proto = 'tcp' if '\r\nproto tcp\r\n' in self.config_data else 'udp'
         port = re.findall('remote .+ \d+', self.config_data)
         if not port:
@@ -87,7 +87,7 @@ class Server:
         spaces = [6, 7, 6, 10, 10, 10, 10, 8, 8]
         speed = self.speed / 1000. ** 2
         uptime = datetime.timedelta(milliseconds=int(self.uptime))
-        uptime = re.split(',|\.', str(uptime))[0]
+        uptime = re.split('[,.]', str(uptime))[0]
         txt = [self.country_short, str(self.ping), '%.2f' % speed, uptime, self.logPolicy, str(self.score), self.proto,
                self.port]
         txt = [dta.center(spaces[ind + 1]) for ind, dta in enumerate(txt)]
@@ -163,10 +163,10 @@ class Connection:
     def reload(self):
         mirrors.extend(self.cfg.mirror['url'].split(', '))
         self.use_proxy, self.proxy, self.port, self.ip = self.cfg.proxy.values()
-        self.sort_by = self.cfg.sort.values()[0]
+        self.sort_by = self.cfg.sort['key']
         self.filters = self.cfg.filter
         self.dns_fix, self.dns = self.cfg.dns.values()
-        self.verbose = self.cfg.openvpn.values()[0]
+        self.verbose = self.cfg.openvpn['verbose']
 
     def rewrite(self, section, **contents):
         for key in contents:
@@ -178,8 +178,8 @@ class Connection:
         if not os.path.exists(self.user_home + '/.config/vpngate-with-proxy'):
             os.makedirs(self.user_home + '/.config/vpngate-with-proxy')
 
-        print '\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n'
-        self.cfg.proxy['use_proxy'] = 'no' if raw_input(
+        print('\n' + '_' * 12 + ctext(' First time config ', 'gB') + '_' * 12 + '\n')
+        self.cfg.proxy['use_proxy'] = 'no' if input(
             ctext('Do you need proxy to connect? ', 'B') + '(yes|[no]):') in 'no' else 'yes'
 
         if self.cfg.proxy['use_proxy'] == 'yes':
@@ -195,24 +195,24 @@ class Connection:
                 ip = socket.gethostbyname(proxy)
 
             if proxy:
-                print ' You are using proxy: ' + ctext('%s:%s' % (proxy, port), 'bB')
-                useit = 'yes' if raw_input(
+                print(' You are using proxy: ' + ctext('%s:%s' % (proxy, port), 'bB'))
+                useit = 'yes' if input(
                     ctext(' Use this proxy? ', 'B') + '([yes]|no):') in 'yes' else 'no'
 
             if useit == 'no':
-                print ' Input your http proxy address and port without including "http://" \nsuch as ' \
-                      + ctext('www.abc.com:8080', 'pB')
+                print(' Input your http proxy address and port without including "http://" \nsuch as '
+                      + ctext('www.abc.com:8080', 'pB'))
                 while 1:
                     try:
-                        proxy, port = raw_input(' Your\033[95m proxy:port \033[0m: ').split(':')
+                        proxy, port = input(' Your\033[95m proxy:port \033[0m: ').split(':')
                         ip = socket.gethostbyname(proxy)
                         port = port.strip()
                         if not 0 <= int(port) <= 65535:
                             raise ValueError
                     except ValueError:
-                        print ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B')
-                        print ' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5'
-                        print '       ' + ctext('port', 'B') + ' is a number in range 0-65535'
+                        print(ctext(' Error: Http proxy must in format ', 'r') + ctext('address:port', 'B'))
+                        print(' Where ' + ctext('address', 'B') + ' is in form of www.abc.com or 123.321.4.5')
+                        print('       ' + ctext('port', 'B') + ' is a number in range 0-65535')
                     else:
                         break
 
@@ -221,7 +221,7 @@ class Connection:
             self.cfg.proxy['ip'] = ip
 
         get_input(self.cfg, 'config')
-        print '\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n'
+        print('\n' + '_' * 12 + ctext(' Config done', 'gB') + '_' * 12 + '\n')
 
     def get_csv(self, url, queue, proxy={}):
         self.messages['debug'].appendleft(' using gate: ' + url)
@@ -258,8 +258,8 @@ class Connection:
             self.messages['debug'].appendleft(' Pinging proxy... ')
             ping_name = ['ping', '-w 2', '-c 2', '-W 2', self.proxy]
             ping_ip = ['ping', '-w 2', '-c 2', '-W 2', self.ip]
-            res1, err1 = Popen(ping_name, stdout=PIPE, stderr=PIPE).communicate()
-            res2, err2 = Popen(ping_ip, stdout=PIPE, stderr=PIPE).communicate()
+            res1, err1 = Popen(ping_name, stdout=PIPE, stderr=PIPE, universal_newlines=True).communicate()
+            res2, err2 = Popen(ping_ip, stdout=PIPE, stderr=PIPE, universal_newlines=True).communicate()
 
             if err1 and not err2:
                 self.messages['debug'].appendleft(' Pinging proxy... [failed]')
@@ -299,7 +299,7 @@ class Connection:
 
             success = 0
             vpndict = {}
-            for res in [my_queue.get() for r in xrange(self.get_limit)]:
+            for res in [my_queue.get() for r in range(self.get_limit)]:
                 success += res[0]
                 vpndict.update(res[1])
 
@@ -356,8 +356,8 @@ class Connection:
         elif self.sort_by == 'up time':
             sort = sorted(self.vpndict.keys(), key=lambda x: int(self.vpndict[x].uptime))
         else:
-            print '\nValueError: sort_by must be in "speed|ping|score|up time" but got "%s" instead.' % self.sort_by
-            print 'Change your setting by "$ ./vpnproxy config"\n'
+            print('\nValueError: sort_by must be in "speed|ping|score|up time" but got "%s" instead.' % self.sort_by)
+            print('Change your setting by "$ ./vpnproxy config"\n')
             sys.exit()
 
         self.sorted[:] = sort
@@ -412,7 +412,8 @@ class Connection:
 
         my_queue = Queue()
         chunk_len = 10  # reduce chunk_len will increase number of thread
-        my_chunk = [self.vpndict.keys()[i:i + chunk_len] for i in range(0, len(self.vpndict), chunk_len)]
+        all_names = list(self.vpndict.keys())
+        my_chunk = [all_names[i:i + chunk_len] for i in range(0, len(self.vpndict), chunk_len)]
         my_thread = []
         for chunk in my_chunk:
             t = Thread(target=is_alive, args=(chunk, my_queue))
@@ -468,6 +469,9 @@ class Connection:
     @staticmethod
     def vpn_output(out, queue):
         for line in iter(out.readline, b''):
+            if not line:
+                # python3 need this
+                break
             queue.put(line)
         out.close()
 
@@ -487,7 +491,7 @@ class Connection:
 
         ovpn = vpn_file.name
         command = ['openvpn', '--config', ovpn]
-        p = Popen(command, stdout=PIPE, stderr=PIPE, bufsize=1, close_fds=ON_POSIX)
+        p = Popen(command, stdout=PIPE, stderr=PIPE, bufsize=1, close_fds=ON_POSIX, universal_newlines=True)
         q = Queue()
         t = Thread(target=self.vpn_output, args=(p.stdout, q))
         t.daemon = True
@@ -505,7 +509,7 @@ class Connection:
         self.post_action('down')
 
         # make sure openvpn did close its device
-        tuntap = Popen(['ifconfig', '-s'], stdout=PIPE).communicate()[0]
+        tuntap = Popen(['ip', 'tuntap'], stdout=PIPE, universal_newlines=True).communicate()[0]
         devices = re.findall('tun\d+', tuntap)
         for dev in devices:
             call(('ip link delete ' + dev).split())
@@ -648,13 +652,13 @@ class Display:
             self.ovpn.vpn_checker()
 
         # check if user want to fetch new vpn server list
-        if 'call' in self.get_data_status and not self.get_data.isAlive():
+        if 'call' in self.get_data_status and not self.get_data.is_alive():
             self.get_vpn_data()  # clear the template of server list
             self.get_data = Thread(target=self.ovpn.refresh_data, kwargs={'resort_only': self.get_data_status[4:]})
             self.get_data.daemon = True
             self.get_data.start()
             self.get_data_status = 'wait'
-        elif self.get_data_status == 'wait' and not self.get_data.isAlive():
+        elif self.get_data_status == 'wait' and not self.get_data.is_alive():
             self.get_vpn_data()
             self.get_data_status = 'finish'
 
@@ -797,9 +801,13 @@ class Display:
         Ulabel = urwid.Columns(txt_labels)
 
         Udata = []  # temporary, different from self.Udata
-        for i in range(self.ser_no):
-            self.Udata.append(deepcopy(Ulabel))
-            Udata.append(urwid.Padding(urwid.AttrMap(self.Udata[i], 'normal'), width=90))
+        for j in range(self.ser_no):
+            slot = []
+            for i, txt in enumerate(labels):
+                tex = urwid.Text(txt, align='center')
+                slot.append(('fixed', spaces[i], tex))
+            self.Udata.append(urwid.Columns(slot))
+            Udata.append(urwid.Padding(urwid.AttrMap(self.Udata[j], 'normal'), width=90))
 
         Ulabel = urwid.AttrMap(Ulabel, 'command')
 
@@ -810,7 +818,7 @@ class Display:
 
         # Page number
         total = str(len(data_list) // self.ser_no + 1)
-        page_no = str(self.index / self.ser_no + 1)
+        page_no = str(self.index // self.ser_no + 1)
         while int(page_no) > int(total):
             self.index -= self.ser_no
             page_no = str(self.index / self.ser_no + 1)
@@ -896,7 +904,7 @@ class Display:
                 self.sets[index].set_text(tex)
 
             elif key == 'f4':
-                self.ovpn.filters['country'] = config_data[index] = self.sets.contents[index][0].result[0]
+                self.ovpn.filters['country'] = config_data[index] = self.sets.contents[index][0].result[0].lower()
                 self.ovpn.filters['port'] = self.sets.contents[index][0].result[1]
                 self.ovpn.filters['score'] = self.sets.contents[index][0].result[2]
                 s_c_p = self.ovpn.filters['country'][0:4] + ' ' + self.ovpn.filters['port'][0:4]
@@ -1042,7 +1050,7 @@ vpn_connect = Connection()  # initiate network parameter
 required = {'openvpn': 0, 'requests': 0, 'urwid': 0, 'setuptools': 0, 'wmctrl': 0}
 for module in ['requests', 'urwid', 'setuptools']:
     try:
-        __import__(module, globals(), locals(), [], -1)
+        __import__(module, globals(), locals(), [], 0)
     except ImportError:
         required[module] = 1
 
@@ -1055,37 +1063,37 @@ if not os.path.exists('/usr/sbin/openvpn'):
 need = sorted([p for p in required if required[p]])
 if need:
     try:
-        out = check_output(['pip', '--version'])
+        out = check_output(['pip3', '--version'])
     except Exception:
-        need.insert(0, 'python-pip')
+        need.insert(0, 'python3-pip')
 
-    print ctext('\n**Lack of dependencies**\n', 'rB')
+    print(ctext('\n**Lack of dependencies**\n', 'rB'))
     env = dict(os.environ)
     if vpn_connect.use_proxy == 'yes':
         env['http_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
         env['https_proxy'] = 'http://' + vpn_connect.proxy + ':' + vpn_connect.port
 
-    update_now = 'yes' if 'n' in raw_input(
+    update_now = 'yes' if 'n' in input(
         ctext("Have you 'sudo apt-get update' recently?", 'B') + "([yes] | no): ") else 'no'
 
     if update_now == 'yes':
         call([pkg_mgr, 'update'], env=env)
 
     for package in need:
-        print '\n___Now installing', ctext(package, 'gB')
-        print
-        if package in ['openvpn', 'python-pip']:
+        print('\n___Now installing', ctext(package, 'gB'))
+        print()
+        if package in ['openvpn', 'python3-pip']:
             call([pkg_mgr, '-y', 'install', package], env=env)
         else:
-            call(['pip', 'install', package], env=env)
+            call(['pip3', 'install', package], env=env)
             globals()[package] = __import__(package)
-    raw_input(ctext('  Done!\n  Press Enter to continue', 'g'))
+    input(ctext('  Done!\n  Press Enter to continue', 'g'))
 
 import requests
 from ui_elements import *
 
 # -------- all dependencies should be available after this line --------
-# raw_input('for debugging')
+# input('for debugging')
 
 screen = Display(vpn_connect)
 screen.get_data_status = 'call'
