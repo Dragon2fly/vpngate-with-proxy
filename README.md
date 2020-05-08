@@ -106,13 +106,13 @@ Next time launching this program, you won't see this configuration again. Either
 
   If no thing goes wrong, the vpn server's list will show up.
 
-   ![](https://s19.postimg.org/tg0eofvwj/1startup.png)
+   ![](https://i.ibb.co/ftzkqTX/1startup.png)
 
 ### 3. Interaction:
   * Connect to a specific vpn server by typing its *index* number (eg: 3) and then Enter.
   If nothing went wrong, a `successfully` message show up.
   
-    ![](https://s19.postimg.org/m3uyiwdoj/4oldandnew.png)
+    ![](https://i.ibb.co/nn09XNm/4oldandnew.png)
 
   * Your currently chosen server will be highlighted with `dark blue` color.
   * All connected servers before the current one is show in `dark red` color.
@@ -122,7 +122,7 @@ Next time launching this program, you won't see this configuration again. Either
     * **F4**: **Country**, looking for a specific country or all that available?
     * **F5**: **Sort by**, sort these servers by what parameter?
 
-    ![](https://s19.postimg.org/q2s61q2bn/6menu.png)
+    ![](https://i.ibb.co/wch0p9B/6menu.png)
 
   * **Vpn command**: As you mentioned above, give an index of the server then hit Enter will open a vpn tunnel from your to that server. And there are still some more.
 
@@ -187,7 +187,9 @@ You could also use below command in Ubuntu to see trace route:
 
   * The program only shows the last log line at the bottom of terminal. In fact, there is 20 last lines of the log.
    To view these lines, you just need to extend the high of the terminal window.
-   ![log](https://s19.postimg.org/a5te509xf/7loglines.png)
+   
+   ![log](https://i.ibb.co/DR7pMYG/7loglines.png)
+   
    The log is shown up side down so the latest information will be in the highest place
 
   * If your terminal looks weird after program crashed or `Ctrtl+z`, `$ reset` would help
