@@ -91,7 +91,7 @@ def get_input(s, option):
 
         elif user_input == '5':
             while not re.match(r'^[a-z| ]*$', user_input.lower().strip()):
-                user_input = input('Country\'s name (eg: [all], jp, japan): ')
+                user_input = input('Country\'s name (eg: [all], jp, japan, us|ca): ')
             else:
                 s.filter['country'] = 'all' if not user_input else user_input.lower()
 
