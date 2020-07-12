@@ -3,7 +3,7 @@
 __author__ = "duc_tin"
 __copyright__ = "Copyright 2015+, duc_tin"
 __license__ = "GPLv2"
-__version__ = "1.35"
+__version__ = "1.36"
 __maintainer__ = "duc_tin"
 __email__ = "nguyenbaduc.tin@gmail.com"
 
@@ -482,10 +482,10 @@ while True:
 
             mirrors = ["http://www.vpngate.net"] + cfg.mirror['url'].split(', ')
             use_proxy, proxy, port, ip = cfg.proxy.values()
-            sort_by = cfg.sort.values()[0]
+            sort_by = cfg.sort['key']
             s_country, s_port, s_score = cfg.filter.values()
             dns_fix, dns = cfg.dns.values()
-            verbose = cfg.openvpn.values()[0]
+            verbose = cfg.openvpn['verbose']
 
             ranked, vpn_list = refresh_data()
         elif re.findall(r'^\d+$', user_input.strip()) and int(user_input) < server_sum:
