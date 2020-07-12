@@ -90,7 +90,7 @@ def get_input(s, option):
             s.sort['key'] = 'up time' if user_input == 'uptime' else user_input
 
         elif user_input == '5':
-            while not re.match('^[a-z ]*$', user_input.lower().strip()):
+            while not re.match(r'^[a-z| ]*$', user_input.lower().strip()):
                 user_input = input('Country\'s name (eg: [all], jp, japan): ')
             else:
                 s.filter['country'] = 'all' if not user_input else user_input.lower()
