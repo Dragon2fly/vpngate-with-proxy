@@ -344,7 +344,7 @@ class VPNIndicator:
             body = ''
         elif 'successfully' in messages[0]:
             print(rep_time(), messages[1:])
-            tags = ['Ping:', 'Speed:', 'Up time:', 'Season:', 'Log:', 'Score:', 'Protocol:', 'Portal:']
+            tags = ['Ping:', 'Speed:', 'Up time:', 'Session:', 'Log:', 'Score:', 'Protocol:', 'Portal:']
             msg = messages[1:3] + [item for items in zip(tags, messages[3:9]) for item in items]
             summary = 'VPN tunnel established'
 
